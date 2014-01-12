@@ -31,12 +31,12 @@
 #define LPC17xx_MAINOSC_ENABLE              TRUE
 #define LPC17xx_SYSCLK_SELECT               CLKSRCSEL_MAINOSC
 #define LPC17xx_MAINPLL_ENABLE              TRUE
-#define LPC17xx_MAINPLL_MUL                 200
-#define LPC17xx_MAINPLL_PREDIV              6
+#define LPC17xx_MAINPLL_MUL                 100
+#define LPC17xx_MAINPLL_PREDIV              3
 #define LPC17xx_USBPLL_ENABLE               FALSE
 #define LPC17xx_USBPLL_MUL                  4
 #define LPC17xx_USBPLL_DIV                  4
-#define LPC17xx_CCLK_DIV                    4
+#define LPC17xx_CCLK_DIV                    5
 #define LPC17xx_PCLK_SELECT                 PCLKSEL_CCLK
 #define LPC17xx_CLKOUT_ENABLE               FALSE
 #define LPC17xx_CLKOUT_DIV                  4

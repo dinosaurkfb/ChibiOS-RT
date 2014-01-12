@@ -54,7 +54,7 @@ PROJECT = ch
 
 # Imported source files and paths
 CHIBIOS = ../../..
-include $(CHIBIOS)/boards/LPC1766_MM/board.mk
+include $(CHIBIOS)/boards/ZLG_1766/board.mk
 include $(CHIBIOS)/os/hal/platforms/LPC17xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/LPC17xx/port.mk
