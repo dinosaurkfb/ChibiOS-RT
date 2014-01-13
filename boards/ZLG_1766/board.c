@@ -16,6 +16,7 @@
 
 #include "ch.h"
 #include "hal.h"
+#include "chprintf.h"
 
 /**
  * @brief   PAL setup.
@@ -39,40 +40,44 @@ const PALConfig pal_default_config = {
  *
  * @notapi
  */
-void myDelay (uint32_t ms)
-{
-    volatile uint32_t i = 0;
+void msDelay (uint32_t ms) {
 
-    while (ms--) {
-        for (i = 0; i < 20000; i++);
-    }
+  volatile uint32_t i = 0;
+  while (ms--) {
+    for (i = 0; i < 20000; i++);
+  }
 }
 
 
 /**
- * @brief   GPIO initialization.
+ * @brief   Temporary GPIO initialization. When PAL driver is ok, this function
+ *          will be removed.
  *
- * @param[in] sdp       communication channel associated to the UART
- * @param[in] config    the architecture-dependent serial driver configuration
  */
-void GPIOInit( void )
-{
-    LPC_GPIO3->FIODIR |= 1<<30;                                            /* 设置P3.30为输出              */
-    LPC_GPIO3->FIOSET |= 1<<30;                                            /* 设置P3.30为高电平            */
-    LPC_GPIO2->FIODIR0 |= 1<<0;                                            /* 设置P2.0为输出              */
-    LPC_GPIO2->FIOSET0 |= 1<<0;                                            /* 设置P2.0为高电平            */
+void GPIOInit( void ) {
 
-    LPC_GPIO2->FIODIR0 |= 1<<1;                                            /* 设置P2.0为输出              */
-    LPC_GPIO2->FIOSET0 |= 1<<1;                                            /* 设置P2.0为高电平            */
+  /* Set P3.30 as output and high level. */
+  LPC_GPIO3->FIODIR |= 1<<30;
+  LPC_GPIO3->FIOSET |= 1<<30;
 
-    LPC_GPIO2->FIODIR0 |= 1<<2;                                            /* 设置P2.0为输出              */
-    LPC_GPIO2->FIOSET0 |= 1<<2;                                            /* 设置P2.0为高电平            */
+  /* Set P2.0 as output and high level. */
+  LPC_GPIO2->FIODIR0 |= 1<<0;
+  LPC_GPIO2->FIOSET0 |= 1<<0;
 
-    LPC_GPIO2->FIODIR0 |= 1<<3;                                            /* 设置P2.0为输出              */
-    LPC_GPIO2->FIOSET0 |= 1<<3;                                            /* 设置P2.0为高电平            */
+  /* Set P2.1 as output and high level. */
+  LPC_GPIO2->FIODIR0 |= 1<<1;
+  LPC_GPIO2->FIOSET0 |= 1<<1;
+
+  /* Set P2.2 as output and high level. */
+  LPC_GPIO2->FIODIR0 |= 1<<2;
+  LPC_GPIO2->FIOSET0 |= 1<<2;
+
+  /* Set P2.3 as output and high level. */
+  LPC_GPIO2->FIODIR0 |= 1<<3;
+  LPC_GPIO2->FIOSET0 |= 1<<3;
 }
 
-void _ShowLEDNum(uint32_t num) {
+void _ledShowBin(uint32_t num) {
   
   volatile uint32_t i = 0;
   for (i = 0; i < 4; i++) {
@@ -84,50 +89,46 @@ void _ShowLEDNum(uint32_t num) {
   }
 }
 
-void ShowLEDNum(uint32_t num) {
+/**
+ * @brief   Double-blink four leds to denote a number in binary format.
+ * @note    This function uses @p msDelay() to form a interval.
+ *
+ * @param[in] mum       Number to be blinked.
+ * @param[in] interval  Interval time  when blinking.
+ *
+ * @api
+ */
+void ledDoubleBlinkBin(uint32_t num, uint32_t interval) {
 
-  _ShowLEDNum(num);
-  myDelay(100);
-  _ShowLEDNum(0);
-  myDelay(100);
-  _ShowLEDNum(num);
-  myDelay(100);
-  _ShowLEDNum(0);
-  myDelay(400);
+  ledSingleBlinkBin(num, interval);
+  ledSingleBlinkBin(num, interval);
 }
 
-void LongShowLEDNum(uint32_t num) {
+/**
+ * @brief   Single-blink four leds to denote a number in binary format.
+ * @note    This function uses @p msDelay() to form a interval.
+ *
+ * @param[in] mum       Number to be blinked.
+ * @param[in] interval  Interval time  when blinking.
+ *
+ * @api
+ */
+void ledSingleBlinkBin(uint32_t num, uint32_t interval) {
 
-  _ShowLEDNum(num);
-  myDelay(800);
-  _ShowLEDNum(0);
-  /* myDelay(100); */
-  /* _ShowLEDNum(num); */
-  /* myDelay(100); */
-  /* _ShowLEDNum(0); */
-  myDelay(400);
+  _ledShowBin(num);
+  msDelay(interval);
+  _ledShowBin(0);
+  msDelay(interval);
 }
 
 
-/*********************************************************************************************************
-** 函数名称：LEDOperate
-** 函数描述：LED工作
-** 输入参数：无
-** 返回值  ：无
-*********************************************************************************************************/
-void LEDOperate(void)
+/**
+ * @brief   Operate all leds as a test.
+ *
+ */
+void ledOperate(void)
 {
-  _ShowLEDNum(0xF);
-  myDelay(100);
-
-  _ShowLEDNum(0x0);
-  myDelay(100);
-
-  _ShowLEDNum(0xF);
-  myDelay(100);
-
-  _ShowLEDNum(0x0);
-  myDelay(100);
+  ledDoubleBlinkBin(0xF, 100);
 }
 
 /*
@@ -139,10 +140,59 @@ void __early_init(void) {
   LPC17xx_clock_init();
 }
 
+/** @brief Driver default configuration.*/
+static const SerialConfig uart0_config = {
+  115200,
+  LCR_WL8 | LCR_STOP1 | LCR_NOPARITY,
+  FCR_TRIGGER0
+};
+
+/**
+ * @brief   System formatted output function.
+ * @details This function implements a minimal @p printf() like functionality
+ *          with output on a @p BaseSequentialStream.
+ *          The general parameters format is: %[-][width|*][.precision|*][l|L]p.
+ *          The following parameter types (p) are supported:
+ *          - <b>x</b> hexadecimal integer.
+ *          - <b>X</b> hexadecimal long.
+ *          - <b>o</b> octal integer.
+ *          - <b>O</b> octal long.
+ *          - <b>d</b> decimal signed integer.
+ *          - <b>D</b> decimal signed long.
+ *          - <b>u</b> decimal unsigned integer.
+ *          - <b>U</b> decimal unsigned long.
+ *          - <b>c</b> character.
+ *          - <b>s</b> string.
+ *          .
+ *
+ * @param[in] fmt       formatting string
+ *
+ * @api
+ */
+void LOG_PRINT(const char *fmt, ...) {
+  va_list ap;
+
+  va_start(ap, fmt);
+#if LOG_PRINT_USE_UART0
+  chvprintf((BaseSequentialStream  *)&SD1, fmt, ap);
+#endif
+  va_end(ap);
+}
+
+
 /*
  * Board-specific initialization code.
  */
 void boardInit(void) {
   GPIOInit();
-  LEDOperate();
+  ledOperate();
+
+#if LOG_PRINT_USE_UART0
+  /*
+   * Prepares the Serial driver 1.
+   * Default is 38400-8-N-1. But here use uart0_config. 
+   */
+  sdStart(&SD1, &uart0_config);
+#endif
+
 }

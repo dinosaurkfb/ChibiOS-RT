@@ -41,22 +41,9 @@
 #define VAL_GPIO0DATA           PAL_PORT_BIT(GPIO0_OLEDSEL) |               \
                                 PAL_PORT_BIT(GPIO0_LED2)
 
-#define LEDOFF(x)        (LPC_GPIO2->FIOSET0 |= 1ul << (x))
-#define LEDON(x)         (LPC_GPIO2->FIOCLR0 |= 1ul << (x))
+#define LEDOFF(x)               (LPC_GPIO2->FIOSET0 |= 1ul << (x))
+#define LEDON(x)                (LPC_GPIO2->FIOCLR0 |= 1ul << (x))
 
-/*
- * Use 4-bits LED to show a number(0~15)
- */
-void ShowLEDNum(uint32_t num);
-void LongShowLEDNum(uint32_t num);
-
-/*********************************************************************************************************
-** 函数名称：myDelay
-** 函数描述：软件延时
-** 输入参数：ulTime    延时大小
-** 返回值  ：无
-*********************************************************************************************************/
-void myDelay (uint32_t ulTime);
 
 /*
  * GPIO 1 initial setup.
@@ -95,11 +82,26 @@ void myDelay (uint32_t ulTime);
 #define GPIO1_LED3G             10
 #define GPIO1_SPI0SEL           11
 
+/**
+ * @brief   UART0 LOG_PRINT enable switch.
+ * @details If set to @p TRUE LOG_PRINT via UART0 is supported.
+ * @note    The default is @p TRUE .
+ */
+#if !defined(LOG_PRINT_USE_UART0) || defined(__DOXYGEN__)
+#define LOG_PRINT_USE_UART0              TRUE
+#endif
+
+
 #if !defined(_FROM_ASM_)
 #ifdef __cplusplus
 extern "C" {
 #endif
   void boardInit(void);
+  void msDelay (uint32_t ulTime);
+  void ledSingleBlinkBin(uint32_t num, uint32_t interval);
+  void ledDoubleBlinkBin(uint32_t num, uint32_t interval);
+  void LOG_PRINT(const char *fmt, ...);
+
 #ifdef __cplusplus
 }
 #endif
