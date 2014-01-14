@@ -74,6 +74,7 @@ int main(void) {
   while (TRUE) {
     chThdSleepMilliseconds(1000);
     LOG_PRINT("*** Alive %u seconds.\n", ++s);
+    s % 2 == 0 ? LEDOFF(4) : LEDON(4);
   }
   return 0;
 }
