@@ -36,33 +36,30 @@
 /*
  * GPIO 0 initial setup.
  */
-#define VAL_GPIO0DIR            PAL_PORT_BIT(GPIO0_OLEDSEL) |               \
-                                PAL_PORT_BIT(GPIO0_LED2)
-#define VAL_GPIO0DATA           PAL_PORT_BIT(GPIO0_OLEDSEL) |               \
-                                PAL_PORT_BIT(GPIO0_LED2)
+#define VAL_GPIO0DIR            0x00000000
+#define VAL_GPIO0DATA           0x00000000
 
-#define LEDOFF(x)               (LPC_GPIO2->FIOSET0 |= 1ul << (x))
-#define LEDON(x)                (LPC_GPIO2->FIOCLR0 |= 1ul << (x))
-
+#define LEDOFF(x)               palSetPad(GPIO2, (x - 1))
+#define LEDON(x)                palClearPad(GPIO2, (x - 1))
 
 /*
  * GPIO 1 initial setup.
  */
-#define VAL_GPIO1DIR            PAL_PORT_BIT(GPIO1_LED3B)   |               \
-                                PAL_PORT_BIT(GPIO1_LED3R)   |               \
-                                PAL_PORT_BIT(GPIO1_LED3G)   |               \
-                                PAL_PORT_BIT(GPIO1_SPI0SEL)
-#define VAL_GPIO1DATA           PAL_PORT_BIT(GPIO1_LED3B)   |               \
-                                PAL_PORT_BIT(GPIO1_LED3R)   |               \
-                                PAL_PORT_BIT(GPIO1_LED3G)   |               \
-                                PAL_PORT_BIT(GPIO1_SPI0SEL)
+#define VAL_GPIO1DIR            0x00000000
+#define VAL_GPIO1DATA           0x00000000
 
 /*
  * GPIO 2 initial setup.
  */
-#define VAL_GPIO2DIR            0x00000000
-#define VAL_GPIO2DATA           0x00000000
+#define VAL_GPIO2DIR            PAL_PORT_BIT(GPIO2_LED1)   |               \
+                                PAL_PORT_BIT(GPIO2_LED2)   |               \
+                                PAL_PORT_BIT(GPIO2_LED3)   |               \
+                                PAL_PORT_BIT(GPIO2_LED4)
 
+#define VAL_GPIO2DATA           PAL_PORT_BIT(GPIO2_LED1)   |               \
+                                PAL_PORT_BIT(GPIO2_LED2)   |               \
+                                PAL_PORT_BIT(GPIO2_LED3)   |               \
+                                PAL_PORT_BIT(GPIO2_LED4)
 /*
  * GPIO 3 initial setup.
  */
@@ -70,17 +67,19 @@
 #define VAL_GPIO3DATA           0x00000000
 
 /*
+ * GPIO 4 initial setup.
+ */
+#define VAL_GPIO4DIR            0x00000000
+#define VAL_GPIO4DATA           0x00000000
+
+/*
  * Pin definitions.
  */
-#define GPIO0_SW3               1
-#define GPIO0_OLEDSEL           2
-#define GPIO0_LED2              7
+#define GPIO2_LED1              0
+#define GPIO2_LED2              1
+#define GPIO2_LED3              2
+#define GPIO2_LED4              3
 
-#define GPIO1_LED3B             2
-#define GPIO1_SW4               4
-#define GPIO1_LED3R             9
-#define GPIO1_LED3G             10
-#define GPIO1_SPI0SEL           11
 
 /**
  * @brief   UART0 LOG_PRINT enable switch.

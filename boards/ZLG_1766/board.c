@@ -29,6 +29,7 @@ const PALConfig pal_default_config = {
  {VAL_GPIO1DATA, VAL_GPIO1DIR},
  {VAL_GPIO2DATA, VAL_GPIO2DIR},
  {VAL_GPIO3DATA, VAL_GPIO3DIR},
+ {VAL_GPIO4DATA, VAL_GPIO4DIR},
 };
 #endif
 
@@ -48,45 +49,11 @@ void msDelay (uint32_t ms) {
   }
 }
 
-
-/**
- * @brief   Temporary GPIO initialization. When PAL driver is ok, this function
- *          will be removed.
- *
- */
-void GPIOInit( void ) {
-
-  /* Set P3.30 as output and high level. */
-  LPC_GPIO3->FIODIR |= 1<<30;
-  LPC_GPIO3->FIOSET |= 1<<30;
-
-  /* Set P2.0 as output and high level. */
-  LPC_GPIO2->FIODIR0 |= 1<<0;
-  LPC_GPIO2->FIOSET0 |= 1<<0;
-
-  /* Set P2.1 as output and high level. */
-  LPC_GPIO2->FIODIR0 |= 1<<1;
-  LPC_GPIO2->FIOSET0 |= 1<<1;
-
-  /* Set P2.2 as output and high level. */
-  LPC_GPIO2->FIODIR0 |= 1<<2;
-  LPC_GPIO2->FIOSET0 |= 1<<2;
-
-  /* Set P2.3 as output and high level. */
-  LPC_GPIO2->FIODIR0 |= 1<<3;
-  LPC_GPIO2->FIOSET0 |= 1<<3;
-}
+#define LED_BITS_WIDTH    4
+#define LED_BITS_OFFSET   0
 
 void _ledShowBin(uint32_t num) {
-  
-  volatile uint32_t i = 0;
-  for (i = 0; i < 4; i++) {
-    if (num & (1 << i)) {
-      LEDON(i);
-    } else {
-      LEDOFF(i);
-    }
-  }
+  palWriteGroup(GPIO2, PAL_GROUP_MASK(LED_BITS_WIDTH), LED_BITS_OFFSET, num);
 }
 
 /**
@@ -184,7 +151,6 @@ void LOG_PRINT(const char *fmt, ...) {
  * Board-specific initialization code.
  */
 void boardInit(void) {
-  GPIOInit();
   ledOperate();
 
 #if LOG_PRINT_USE_UART0
