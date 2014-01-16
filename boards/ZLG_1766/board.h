@@ -26,7 +26,7 @@
  * Board identifiers.
  */
 #define BOARD_LPC1766
-#define BOARD_NAME "Base Board + LPC1766"
+#define BOARD_NAME "ZLG Board with LPC1766 chip."
 
 /*
  * Board frequencies.

@@ -25,7 +25,7 @@
  * Board identifiers.
  */
 #define BOARD_LPC1768
-#define BOARD_NAME "Base Board + LPC1768"
+#define BOARD_NAME "HY-LandTiger Board with LPC1768 chip."
 
 /*
  * Board frequencies.
