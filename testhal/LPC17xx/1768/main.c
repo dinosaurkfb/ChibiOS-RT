@@ -22,10 +22,40 @@
 /*===========================================================================*/
 /* Configurable settings.                                                    */
 /*===========================================================================*/
+#define TEST_EXT TRUE
+
+#define NO_TEST  TRUE
+
+#if (TEST_EXT == TRUE)
+#undef NO_TEST
+#endif
 
 /*===========================================================================*/
 /* Generic demo code.                                                        */
 /*===========================================================================*/
+
+#if (TEST_EXT == TRUE) 
+/* Triggered when button is released. LED5 is set to ON or OFF alternately.*/
+static void extcb2(EXTDriver *extp, expchannel_t channel) {
+  static bool status = TRUE;
+  if (status == FALSE) {
+    LEDON(5);
+    status = TRUE;
+  } else {
+    LEDOFF(5);
+    status = FALSE;
+  }
+}
+
+static const EXTConfig extcfg = {
+  {
+    {EXT_CH_MODE_DISABLED, NULL},
+    {EXT_CH_MODE_DISABLED, NULL},
+    {EXT_CH_MODE_RISING_EDGE | EXT_CH_MODE_AUTOSTART, extcb2},
+    {EXT_CH_MODE_DISABLED, NULL}
+  }
+};
+#endif
 
 /*
  * Application entry point.
@@ -41,6 +71,14 @@ int main(void) {
    */
   halInit();
   chSysInit();
+
+
+#if (TEST_EXT == TRUE)
+  /*
+   * Activates the EXT driver 1.
+   */
+  extStart(&EXTD1, &extcfg);
+#endif
 
   /*
    * Test procedure.
@@ -66,15 +104,34 @@ int main(void) {
 #endif
   LOG_PRINT("***\n");
   LOG_PRINT("*** System Clock: %u\n", LPC17xx_CCLK);
-  LOG_PRINT("Test Complete\n");
   /*
    * Normal main() thread activity, nothing in this test.
    */
+#ifdef NO_TEST
   uint32_t s = 0;
+#endif
+
+#if (TEST_EXT == TRUE)
+  LOG_PRINT("\n*** EXT Test with KEY2 and LD5.\n");
+#endif
+
   while (TRUE) {
+#ifdef NO_TEST
     chThdSleepMilliseconds(1000);
-    LOG_PRINT("*** Alive %u seconds.\n", ++s);
-    s % 2 == 0 ? LEDOFF(4) : LEDON(4);
+    ++s;
+    LOG_PRINT("*** Alive %u seconds.\n", s);
+#endif
+
+#if (TEST_EXT == TRUE)
+    LOG_PRINT("EXT Channel 2 enabled for 10 seconds, "
+	      "Press KEY2, LD5 will switch ON and OFF.\n");
+    chThdSleepMilliseconds(10000);
+    extChannelDisable(&EXTD1, 2);
+    LOG_PRINT("EXT Channel 2 disabled for 10 seconds, "
+	      "No effect when pressing KEY2.\n\n");
+    chThdSleepMilliseconds(10000);
+    extChannelEnable(&EXTD1, 2);
+#endif
   }
   return 0;
 }
