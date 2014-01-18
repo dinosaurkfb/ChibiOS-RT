@@ -258,7 +258,7 @@
 /**
  * @brief   Main oscillator out of range.
  */
-#if ((MAINOSCCLK < 10000000) && (MAINOSCCLK > 25000000)) || defined(__DOXYGEN__)
+#if ((MAINOSCCLK < 10000000) || (MAINOSCCLK > 25000000)) || defined(__DOXYGEN__)
 #error "Main oscillator clock out of range."
 #endif
 

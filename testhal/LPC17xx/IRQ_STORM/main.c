@@ -47,22 +47,22 @@ int main(void) {
    */
   LOG_PRINT("\n*** ChibiOS/RT IRQ-STORM long duration test\n");
   LOG_PRINT("***\n");
-  LOG_PRINT("*** Kernel:       %u\n", CH_KERNEL_VERSION);
+  LOG_PRINT("*** Kernel:       %s\n", CH_KERNEL_VERSION);
 #ifdef CH_COMPILER_NAME
-  LOG_PRINT("*** Compiler:     %u\n", CH_COMPILER_NAME);
+  LOG_PRINT("*** Compiler:     %s\n", CH_COMPILER_NAME);
 #endif
-  LOG_PRINT("*** Architecture: %u\n", CH_ARCHITECTURE_NAME);
+  LOG_PRINT("*** Architecture: %s\n", CH_ARCHITECTURE_NAME);
 #ifdef CH_CORE_VARIANT_NAME
-  LOG_PRINT("*** Core Variant: %u\n", CH_CORE_VARIANT_NAME);
+  LOG_PRINT("*** Core Variant: %s\n", CH_CORE_VARIANT_NAME);
 #endif
 #ifdef CH_PORT_INFO
-  LOG_PRINT("*** Port Info:    %u\n", CH_PORT_INFO);
+  LOG_PRINT("*** Port Info:    %s\n", CH_PORT_INFO);
 #endif
 #ifdef PLATFORM_NAME
-  LOG_PRINT("*** Platform:     %u\n", PLATFORM_NAME);
+  LOG_PRINT("*** Platform:     %s\n", PLATFORM_NAME);
 #endif
 #ifdef BOARD_NAME
-  LOG_PRINT("*** Test Board:   %u\n", BOARD_NAME);
+  LOG_PRINT("*** Test Board:   %s\n", BOARD_NAME);
 #endif
   LOG_PRINT("***\n");
   LOG_PRINT("*** System Clock: %u\n", LPC17xx_CCLK);
