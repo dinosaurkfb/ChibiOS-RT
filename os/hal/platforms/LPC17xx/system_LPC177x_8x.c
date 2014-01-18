@@ -480,8 +480,8 @@ void SystemCoreClockUpdate (void)            /* Get Core Clock Frequency      */
  * @brief  Setup the microcontroller system.
  *         Initialize the System.
  */
-void SystemInit (void)
-{
+void LPC178x_clock_init(void) {
+
 #if (CLOCK_SETUP)                       /* Clock Setup                        */
   LPC_SC->SCS       = SCS_Val;
   if (SCS_Val & (1 << 5)) {             /* If Main Oscillator is enabled      */

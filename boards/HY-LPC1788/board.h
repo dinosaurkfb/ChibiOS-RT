@@ -38,8 +38,8 @@
 #define VAL_GPIO0DIR            0x00000000
 #define VAL_GPIO0DATA           0x00000000
 
-#define LEDOFF(x) palSetPad(GPIO2, (11 - x))
-#define LEDON(x) palClearPad(GPIO2, (11 - x))
+#define LEDOFF(x) palSetPad(GPIO2, GPIO2_LD2)
+#define LEDON(x) palClearPad(GPIO2, GPIO2_LD2)
 
 /*
  * GPIO 1 initial setup.
@@ -50,23 +50,8 @@
 /*
  * GPIO 2 initial setup.
  */
-#define VAL_GPIO2DIR            PAL_PORT_BIT(GPIO2_LD11)   |               \
-                                PAL_PORT_BIT(GPIO2_LD10)   |               \
-                                PAL_PORT_BIT(GPIO2_LD9)    |               \
-                                PAL_PORT_BIT(GPIO2_LD8)    |               \
-                                PAL_PORT_BIT(GPIO2_LD7)    |               \
-                                PAL_PORT_BIT(GPIO2_LD6)    |               \
-                                PAL_PORT_BIT(GPIO2_LD5)    |               \
-                                PAL_PORT_BIT(GPIO2_LD4)
-
-#define VAL_GPIO2DATA           PAL_PORT_BIT(GPIO2_LD11)   |               \
-                                PAL_PORT_BIT(GPIO2_LD10)   |               \
-                                PAL_PORT_BIT(GPIO2_LD9)    |               \
-                                PAL_PORT_BIT(GPIO2_LD8)    |               \
-                                PAL_PORT_BIT(GPIO2_LD7)    |               \
-                                PAL_PORT_BIT(GPIO2_LD6)    |               \
-                                PAL_PORT_BIT(GPIO2_LD5)    |               \
-                                PAL_PORT_BIT(GPIO2_LD4)
+#define VAL_GPIO2DIR            PAL_PORT_BIT(GPIO2_LD2)
+#define VAL_GPIO2DATA           PAL_PORT_BIT(GPIO2_LD2)
 /*
  * GPIO 3 initial setup.
  */
@@ -82,14 +67,10 @@
 /*
  * Pin definitions.
  */
-#define GPIO2_LD11              0
-#define GPIO2_LD10              1
-#define GPIO2_LD9               2
-#define GPIO2_LD8               3
-#define GPIO2_LD7               4
-#define GPIO2_LD6               5
-#define GPIO2_LD5               6
-#define GPIO2_LD4               7
+#define GPIO5_LD8               0
+#define GPIO5_LD9               1
+#define GPIO1_LD7               13
+#define GPIO2_LD2               21
 
 
 /**

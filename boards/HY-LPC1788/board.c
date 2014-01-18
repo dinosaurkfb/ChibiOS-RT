@@ -98,13 +98,47 @@ void ledOperate(void)
   ledDoubleBlinkBin(0xFF, 100);
 }
 
+void GPIOInit(void) {
+  /* LED1   P2.21 CORE and SDK Both*/
+  /* LED2   P1.13 SDK Only */      
+  /* LED3   P5.0  SDK Only */        
+  /* LED4   P5.1  SDK Only */    		
+  PINSEL_ConfigPin(2,21,0);	   /* P2.21 - GPIO */
+  GPIO_SetDir(2, (1<<21), 1);
+
+  PINSEL_ConfigPin(1,13,0);	   /* P1.13 - GPIO */
+  GPIO_SetDir(1, (1<<13), 1);
+
+  PINSEL_ConfigPin(5,0,0);	   /* P5.0 - GPIO */
+  GPIO_SetDir(5, (1<<0), 1);
+
+  PINSEL_ConfigPin(5,1,0);	   /* P5.1 - GPIO */
+  GPIO_SetDir(5, (1<<1), 1);
+}
+
 /*
  * Early initialization code.
  * This initialization must be performed just after stack setup and before
  * any other initialization.
  */
 void __early_init(void) {
-  LPC17xx_clock_init();
+  LPC178x_clock_init();
+  GPIOInit();
+  for(;;)
+    {  
+      /*====LED-ON=======*/
+      GPIO_ClearValue( 2, (1<<21) ); 
+      GPIO_ClearValue( 1, (1<<13) );  
+      GPIO_ClearValue( 5, (1<<0) );  
+      GPIO_ClearValue( 5, (1<<1) );  
+      msDelay(1000);
+      /*====LED-OFF=======*/
+      GPIO_SetValue( 2, (1<<21) ); 
+      GPIO_SetValue( 1, (1<<13) );  
+      GPIO_SetValue( 5, (1<<0) );  
+      GPIO_SetValue( 5, (1<<1) );  
+      msDelay(1000);
+    }
 }
 
 /** @brief Driver default configuration.*/
