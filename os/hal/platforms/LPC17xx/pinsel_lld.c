@@ -1,12 +1,12 @@
 /**********************************************************************
- * $Id$		lpc177x_8x_pinsel.c			2011-06-02
+ * $id$  pinsel_lld.c   2011-06-02
  *//**
-    * @file		lpc177x_8x_pinsel.c
-    * @brief	Contains all functions support for Pin-connection block
-    *			firmware library on LPC177x_8x
-    * @version	1.0
-    * @date		02. June. 2011
-    * @author	NXP MCU SW Application Team
+    * @file  pinsel_lld.c
+    * @brief Contains all functions support for Pin-connection block
+    *   firmware library on LPC177x_8x
+    * @version 1.0
+    * @date  02. June. 2011
+    * @author NXP MCU SW Application Team
     * 
     * Copyright(C) 2011, NXP Semiconductor
     * All rights reserved.
@@ -34,19 +34,20 @@
 /** @addtogroup PINSEL
  * @{
  */
-
+#include "ch.h"
+#include "hal.h"
 
 /* Includes ------------------------------------------------------------------- */
-#include "lpc177x_8x_pinsel.h"
+#include "pinsel_lld.h"
 
 /* Private Functions ---------------------------------------------------------- */
 
 /*********************************************************************/
 /**
- * @brief		Get pointer to GPIO peripheral due to GPIO port
- * @param[in]	portnum		Port Number value, should be in range from 0..3.
- * @param[in]	pinnum		Pin number value, should be in range from 0..31
- * @return		Pointer to GPIO peripheral
+ * @brief  Get pointer to GPIO peripheral due to GPIO port
+ * @param[in] portnum  Port Number value, should be in range from 0..3.
+ * @param[in] pinnum  Pin number value, should be in range from 0..31
+ * @return  Pointer to GPIO peripheral
  **********************************************************************/
 static uint32_t * PIN_GetPointer(uint8_t portnum, uint8_t pinnum)
 {
@@ -62,16 +63,16 @@ static uint32_t * PIN_GetPointer(uint8_t portnum, uint8_t pinnum)
 
 /*********************************************************************/
 /**
- * @brief 		Get type of a pin.
- * @param[in]	portnum PORT number, should be in range: 0..3
- * @param[in]	pinnum	Pin number, should be in range: 0..31
- * @return 		Port type:
- *				- PINSEL_PIN_TYPE_D
- *				- PINSEL_PIN_TYPE_A
- *				- PINSEL_PIN_TYPE_I
- *				- PINSEL_PIN_TYPE_W
- *				- PINSEL_PIN_TYPE_U   
- *				- PINSEL_PIN_TYPE_UNKNOWN: Invalid pin
+ * @brief   Get type of a pin.
+ * @param[in] portnum PORT number, should be in range: 0..3
+ * @param[in] pinnum Pin number, should be in range: 0..31
+ * @return   Port type:
+ *    - PINSEL_PIN_TYPE_D
+ *    - PINSEL_PIN_TYPE_A
+ *    - PINSEL_PIN_TYPE_I
+ *    - PINSEL_PIN_TYPE_W
+ *    - PINSEL_PIN_TYPE_U   
+ *    - PINSEL_PIN_TYPE_UNKNOWN: Invalid pin
  **********************************************************************/
 PinSel_PinType PINSEL_GetPinType(uint8_t portnum, uint8_t pinnum)
 {
@@ -120,18 +121,18 @@ PinSel_PinType PINSEL_GetPinType(uint8_t portnum, uint8_t pinnum)
 
 /*********************************************************************/
 /**
- * @brief 		Setup the pin selection function
- * @param[in]	portnum PORT number, should be in range: 0..3
- * @param[in]	pinnum	Pin number, should be in range: 0..31
- * @param[in] 	funcnum Function number, should be range: 0..7
- * 				- 0: Select GPIO (Default)
- * 				- 1: Selects the 1st alternate function
- * 				- 2: Selects the 2nd alternate function
- * 				...
- *				- 7: Selects the 7th alternate function
- * @return 		PINSEL Return Code
- *				- PINSEL_RET_INVALID_PIN
- *				- PINSEL_RET_OK
+ * @brief   Setup the pin selection function
+ * @param[in] portnum PORT number, should be in range: 0..3
+ * @param[in] pinnum Pin number, should be in range: 0..31
+ * @param[in]  funcnum Function number, should be range: 0..7
+ *     - 0: Select GPIO (Default)
+ *     - 1: Selects the 1st alternate function
+ *     - 2: Selects the 2nd alternate function
+ *     ...
+ *    - 7: Selects the 7th alternate function
+ * @return   PINSEL Return Code
+ *    - PINSEL_RET_INVALID_PIN
+ *    - PINSEL_RET_OK
  **********************************************************************/
 PINSEL_RET_CODE PINSEL_ConfigPin ( uint8_t portnum, uint8_t pinnum, uint8_t funcnum)
 {
@@ -140,7 +141,7 @@ PINSEL_RET_CODE PINSEL_ConfigPin ( uint8_t portnum, uint8_t pinnum, uint8_t func
 
   if(type == PINSEL_PIN_TYPE_UNKNOWN)
     return PINSEL_RET_INVALID_PIN;
-	
+ 
   pPIN = PIN_GetPointer(portnum, pinnum);
   *pPIN &= ~IOCON_FUNC_MASK;//Clear function bits
   *pPIN |= funcnum&IOCON_FUNC_MASK;
@@ -151,18 +152,18 @@ PINSEL_RET_CODE PINSEL_ConfigPin ( uint8_t portnum, uint8_t pinnum, uint8_t func
 
 /*********************************************************************/
 /**
- * @brief 		Setup resistor mode for pin of type D,A,W
- * @param[in]	portnum PORT number, should be in range: 0..3
- * @param[in]	pinnum	Pin number, should be in range: 0..31
- * @param[in] 	modenum: Mode number, should be in range: 0..3
+ * @brief   Setup resistor mode for pin of type D,A,W
+ * @param[in] portnum PORT number, should be in range: 0..3
+ * @param[in] pinnum Pin number, should be in range: 0..31
+ * @param[in]  modenum: Mode number, should be in range: 0..3
  - IOCON_MODE_PLAIN: Plain output
  - IOCON_MODE_PULLDOWN: Pull-down enable
  - IOCON_MODE_PULLUP: Pull-up enable
  - IOCON_MODE_REPEATER: Repeater mode
- * @return 		PINSEL Return Code
- *				- PINSEL_RET_INVALID_PIN
- *				- PINSEL_RET_NOT_SUPPORT
- *				- PINSEL_RET_OK
+ * @return   PINSEL Return Code
+ *    - PINSEL_RET_INVALID_PIN
+ *    - PINSEL_RET_NOT_SUPPORT
+ *    - PINSEL_RET_OK
  **********************************************************************/
 PINSEL_RET_CODE PINSEL_SetPinMode ( uint8_t portnum, uint8_t pinnum, PinSel_BasicMode modenum)
 {
@@ -175,7 +176,7 @@ PINSEL_RET_CODE PINSEL_SetPinMode ( uint8_t portnum, uint8_t pinnum, PinSel_Basi
      (type != PINSEL_PIN_TYPE_A )&&
      (type != PINSEL_PIN_TYPE_W))
     return PINSEL_RET_NOT_SUPPORT;
-	
+ 
   pPIN = PIN_GetPointer(portnum, pinnum);
   *(uint32_t *)pPIN &= ~(IOCON_MODE_MASK);//Clear function bits
   *(uint32_t *)pPIN |= (modenum << IOCON_MODE_POS)&IOCON_MODE_MASK;
@@ -185,16 +186,16 @@ PINSEL_RET_CODE PINSEL_SetPinMode ( uint8_t portnum, uint8_t pinnum, PinSel_Basi
 
 /*********************************************************************/
 /**
- * @brief 		Setup hysteresis for pin of type D, W
- * @param[in]	portnum Port number, should be in range: 0..3
- * @param[in]	pinnum	Pin number, should be in range: 0..31
- * @param[in] 	NewState new state of Hysteresis mode, should be:
- * 				- ENABLE: Hysteresis enable
- * 				- DISABLE: Hysteresis disable
- * @return 		PINSEL Return Code
- *				- PINSEL_RET_INVALID_PIN
- *				- PINSEL_RET_NOT_SUPPORT
- *				- PINSEL_RET_OK
+ * @brief   Setup hysteresis for pin of type D, W
+ * @param[in] portnum Port number, should be in range: 0..3
+ * @param[in] pinnum Pin number, should be in range: 0..31
+ * @param[in]  NewState new state of Hysteresis mode, should be:
+ *     - ENABLE: Hysteresis enable
+ *     - DISABLE: Hysteresis disable
+ * @return   PINSEL Return Code
+ *    - PINSEL_RET_INVALID_PIN
+ *    - PINSEL_RET_NOT_SUPPORT
+ *    - PINSEL_RET_OK
  **********************************************************************/
 PINSEL_RET_CODE PINSEL_SetHysMode(uint8_t portnum, uint8_t pinnum, FunctionalState NewState)
 {
@@ -206,7 +207,7 @@ PINSEL_RET_CODE PINSEL_SetHysMode(uint8_t portnum, uint8_t pinnum, FunctionalSta
   if((type != PINSEL_PIN_TYPE_D )&&
      (type != PINSEL_PIN_TYPE_W))
     return PINSEL_RET_NOT_SUPPORT;
-	
+ 
   pPIN = PIN_GetPointer(portnum, pinnum);
   if(NewState == DISABLE)
     {
@@ -220,16 +221,16 @@ PINSEL_RET_CODE PINSEL_SetHysMode(uint8_t portnum, uint8_t pinnum, FunctionalSta
 
 /*********************************************************************/
 /**
- * @brief 		Setup input polarity for pin of type A,I,D,W
- * @param[in]	portnum Port number, should be in range: 0..3
- * @param[in]	pinnum	Pin number, should be in range: 0..31
- * @param[in] 	NewState new state of Invert mode, should be:
- * 				- ENABLE: Input is inverted.
- * 				- DISABLE: Input isn't inverted.
- * @return 		PINSEL Return Code
- *				- PINSEL_RET_INVALID_PIN
- *				- PINSEL_RET_NOT_SUPPORT
- *				- PINSEL_RET_OK
+ * @brief   Setup input polarity for pin of type A,I,D,W
+ * @param[in] portnum Port number, should be in range: 0..3
+ * @param[in] pinnum Pin number, should be in range: 0..31
+ * @param[in]  NewState new state of Invert mode, should be:
+ *     - ENABLE: Input is inverted.
+ *     - DISABLE: Input isn't inverted.
+ * @return   PINSEL Return Code
+ *    - PINSEL_RET_INVALID_PIN
+ *    - PINSEL_RET_NOT_SUPPORT
+ *    - PINSEL_RET_OK
  **********************************************************************/
 PINSEL_RET_CODE PINSEL_SetInvertInput(uint8_t portnum, uint8_t pinnum, FunctionalState NewState)
 {
@@ -240,7 +241,7 @@ PINSEL_RET_CODE PINSEL_SetInvertInput(uint8_t portnum, uint8_t pinnum, Functiona
     return PINSEL_RET_INVALID_PIN;
   if(type== PINSEL_PIN_TYPE_U)
     return PINSEL_RET_NOT_SUPPORT;
-	
+ 
   pPIN = PIN_GetPointer(portnum, pinnum);
   if(NewState == DISABLE)
     {
@@ -254,16 +255,16 @@ PINSEL_RET_CODE PINSEL_SetInvertInput(uint8_t portnum, uint8_t pinnum, Functiona
 
 /*********************************************************************/
 /**
- * @brief 		Setup Slew rate for pin of type D,W
- * @param[in]	portnum Port number, should be in range: 0..3
- * @param[in]	pinnum	Pin number, should be in range: 0..31
- * @param[in] 	NewState new state of Slew rate control, should be:
- * 				- ENABLE: Output slew rate control is enable
- * 				- DISABLE: Output slew rate control is disable
- * @return 		PINSEL Return Code
- *				- PINSEL_RET_INVALID_PIN
- *				- PINSEL_RET_NOT_SUPPORT
- *				- PINSEL_RET_OK
+ * @brief   Setup Slew rate for pin of type D,W
+ * @param[in] portnum Port number, should be in range: 0..3
+ * @param[in] pinnum Pin number, should be in range: 0..31
+ * @param[in]  NewState new state of Slew rate control, should be:
+ *     - ENABLE: Output slew rate control is enable
+ *     - DISABLE: Output slew rate control is disable
+ * @return   PINSEL Return Code
+ *    - PINSEL_RET_INVALID_PIN
+ *    - PINSEL_RET_NOT_SUPPORT
+ *    - PINSEL_RET_OK
  **********************************************************************/
 PINSEL_RET_CODE PINSEL_SetSlewMode(uint8_t portnum, uint8_t pinnum, FunctionalState NewState)
 {
@@ -275,7 +276,7 @@ PINSEL_RET_CODE PINSEL_SetSlewMode(uint8_t portnum, uint8_t pinnum, FunctionalSt
   if((type!= PINSEL_PIN_TYPE_D) &&
      (type!= PINSEL_PIN_TYPE_W))
     return PINSEL_RET_NOT_SUPPORT;
-	
+ 
   pPIN = PIN_GetPointer(portnum, pinnum);
   if(NewState == DISABLE)
     {
@@ -289,17 +290,17 @@ PINSEL_RET_CODE PINSEL_SetSlewMode(uint8_t portnum, uint8_t pinnum, FunctionalSt
 
 /*********************************************************************/
 /**
- * @brief 		Setup I2CMode for only pins that provide special I2C functionality
- * @param[in]	portnum Port number, should be in range: 0..3
- * @param[in]	pinnum	Pin number, should be in range: 0..31
- * @param[in] 	I2CMode I2C mode, should be:
- * 				- PINSEL_I2CMODE_FAST_STANDARD: Fast mode and standard I2C mode
- * 				- PINSEL_I2CMODE_OPENDRAINIO: Open drain I/O
- * 				- PINSEL_I2CMODE_FASTMODEPLUS: Fast Mode Plus I/O
- * @return 		PINSEL Return Code
- *				- PINSEL_RET_INVALID_PIN
- *				- PINSEL_RET_NOT_SUPPORT
- *				- PINSEL_RET_OK
+ * @brief   Setup I2CMode for only pins that provide special I2C functionality
+ * @param[in] portnum Port number, should be in range: 0..3
+ * @param[in] pinnum Pin number, should be in range: 0..31
+ * @param[in]  I2CMode I2C mode, should be:
+ *     - PINSEL_I2CMODE_FAST_STANDARD: Fast mode and standard I2C mode
+ *     - PINSEL_I2CMODE_OPENDRAINIO: Open drain I/O
+ *     - PINSEL_I2CMODE_FASTMODEPLUS: Fast Mode Plus I/O
+ * @return   PINSEL Return Code
+ *    - PINSEL_RET_INVALID_PIN
+ *    - PINSEL_RET_NOT_SUPPORT
+ *    - PINSEL_RET_OK
  **********************************************************************/
 PINSEL_RET_CODE PINSEL_SetI2CMode(uint8_t portnum, uint8_t pinnum, PinSel_I2cMode I2CMode)
 {
@@ -310,7 +311,7 @@ PINSEL_RET_CODE PINSEL_SetI2CMode(uint8_t portnum, uint8_t pinnum, PinSel_I2cMod
     return PINSEL_RET_INVALID_PIN;
   if(type != PINSEL_PIN_TYPE_I )
     return PINSEL_RET_NOT_SUPPORT;
-	
+ 
   pPIN = PIN_GetPointer(portnum, pinnum);
 
   switch(I2CMode)
@@ -328,7 +329,7 @@ PINSEL_RET_CODE PINSEL_SetI2CMode(uint8_t portnum, uint8_t pinnum, PinSel_I2cMod
       break;
 
       // Fast Mode Plus I2C: HS = 0, HIDRIVE =1
-    case PINSEL_I2CMODE_FASTMODEPLUS:	
+    case PINSEL_I2CMODE_FASTMODEPLUS: 
       PINSEL_SetI2CFilter(portnum,pinnum,ENABLE);
       *(uint32_t *)pPIN |= (IOCON_I2CMODE_FASTPLUS);
       break;
@@ -341,16 +342,16 @@ PINSEL_RET_CODE PINSEL_SetI2CMode(uint8_t portnum, uint8_t pinnum, PinSel_I2cMod
 
 /*********************************************************************/
 /**
- * @brief 		Setup Open-drain mode in pin of type D, A, W
- * @param[in]	portnum Port number, should be in range: 0..3
- * @param[in]	pinnum	Pin number, should be in range: 0..31
- * @param[in] 	NewState new state of Open-drain mode:
- * 				- DISABLE: Normal pin I/O mode
- * 				- ENABLE: Open-drain enable
- * @return 		PINSEL Return Code
- *				- PINSEL_RET_INVALID_PIN
- *				- PINSEL_RET_NOT_SUPPORT
- *				- PINSEL_RET_OK
+ * @brief   Setup Open-drain mode in pin of type D, A, W
+ * @param[in] portnum Port number, should be in range: 0..3
+ * @param[in] pinnum Pin number, should be in range: 0..31
+ * @param[in]  NewState new state of Open-drain mode:
+ *     - DISABLE: Normal pin I/O mode
+ *     - ENABLE: Open-drain enable
+ * @return   PINSEL Return Code
+ *    - PINSEL_RET_INVALID_PIN
+ *    - PINSEL_RET_NOT_SUPPORT
+ *    - PINSEL_RET_OK
  **********************************************************************/
 PINSEL_RET_CODE PINSEL_SetOpenDrainMode(uint8_t portnum, uint8_t pinnum, FunctionalState NewState)
 {
@@ -363,7 +364,7 @@ PINSEL_RET_CODE PINSEL_SetOpenDrainMode(uint8_t portnum, uint8_t pinnum, Functio
      (type != PINSEL_PIN_TYPE_A ) &&
      (type != PINSEL_PIN_TYPE_W ))
     return PINSEL_RET_NOT_SUPPORT;
-	
+ 
   pPIN = PIN_GetPointer(portnum, pinnum);
   if(NewState == DISABLE)
     {
@@ -378,16 +379,16 @@ PINSEL_RET_CODE PINSEL_SetOpenDrainMode(uint8_t portnum, uint8_t pinnum, Functio
 
 /*********************************************************************/
 /**
- * @brief 		Enable the Analog mode for each pin  of Type A(default is as Digital pins)
- * @param[in]	portnum PORT number, should be in range: 0..3
- * @param[in]	pinnum	Pin number, should be in range: 0..31
- * @param[in] 	enable: the state of the pin that is expected to run
+ * @brief   Enable the Analog mode for each pin  of Type A(default is as Digital pins)
+ * @param[in] portnum PORT number, should be in range: 0..3
+ * @param[in] pinnum Pin number, should be in range: 0..31
+ * @param[in]  enable: the state of the pin that is expected to run
  - ENABLE: Enable the DAC mode of the pin
  - DISABLE: Disable the DAC mode
- * @return 		PINSEL Return Code
- *				- PINSEL_RET_INVALID_PIN
- *				- PINSEL_RET_NOT_SUPPORT
- *				- PINSEL_RET_OK
+ * @return   PINSEL Return Code
+ *    - PINSEL_RET_INVALID_PIN
+ *    - PINSEL_RET_NOT_SUPPORT
+ *    - PINSEL_RET_OK
  **********************************************************************/
 PINSEL_RET_CODE PINSEL_SetAnalogPinMode (uint8_t portnum, uint8_t pinnum, uint8_t enable)
 {
@@ -417,23 +418,23 @@ PINSEL_RET_CODE PINSEL_SetAnalogPinMode (uint8_t portnum, uint8_t pinnum, uint8_
 
 /*********************************************************************/
 /**
- * @brief 		Choose the DAC mode for pin P0.26
- * @param[in]	portnum PORT number, should be in range: 0..3
- * @param[in]	pinnum	Pin number, should be in range: 0..31
- * @param[in] 	enable: the state of the pin that is expected to run
+ * @brief   Choose the DAC mode for pin P0.26
+ * @param[in] portnum PORT number, should be in range: 0..3
+ * @param[in] pinnum Pin number, should be in range: 0..31
+ * @param[in]  enable: the state of the pin that is expected to run
  - ENABLE: Enable the DAC mode of the pin
  - DISABLE: Disable the DAC mode
- * @return 		PINSEL Return Code
- *				- PINSEL_RET_INVALID_PIN
- *				- PINSEL_RET_NOT_SUPPORT
- *				- PINSEL_RET_OK
+ * @return   PINSEL Return Code
+ *    - PINSEL_RET_INVALID_PIN
+ *    - PINSEL_RET_NOT_SUPPORT
+ *    - PINSEL_RET_OK
  **********************************************************************/
 PINSEL_RET_CODE PINSEL_DacEnable (uint8_t portnum, uint8_t pinnum, uint8_t enable)
 {
   uint32_t *pPIN = NULL;
-	
+ 
   PinSel_PinType type = PINSEL_GetPinType(portnum,pinnum);
-	
+ 
   if(type == PINSEL_PIN_TYPE_UNKNOWN)
     return PINSEL_RET_INVALID_PIN;
 
@@ -460,22 +461,22 @@ PINSEL_RET_CODE PINSEL_DacEnable (uint8_t portnum, uint8_t pinnum, uint8_t enabl
 
 /*********************************************************************/
 /**
- * @brief 		Control the 10ns glitch filter for pin of type A,W
- * @param[in]	portnum PORT number, should be in range: 0..3
- * @param[in]	pinnum	Pin number, should be in range: 0..31
- * @param[in] 	enable: the state of the pin that is expected to run
+ * @brief   Control the 10ns glitch filter for pin of type A,W
+ * @param[in] portnum PORT number, should be in range: 0..3
+ * @param[in] pinnum Pin number, should be in range: 0..31
+ * @param[in]  enable: the state of the pin that is expected to run
  - ENABLE: The noise pulses below approximately 10ns are filtered out
  - DISABLE: No input filtering is done.
- * @return 		PINSEL Return Code
- *				- PINSEL_RET_INVALID_PIN
- *				- PINSEL_RET_NOT_SUPPORT
- *				- PINSEL_RET_OK
+ * @return   PINSEL Return Code
+ *    - PINSEL_RET_INVALID_PIN
+ *    - PINSEL_RET_NOT_SUPPORT
+ *    - PINSEL_RET_OK
  **********************************************************************/
 PINSEL_RET_CODE PINSEL_SetFilter (uint8_t portnum, uint8_t pinnum, uint8_t enable)
 {
   uint32_t *pPIN = NULL;
   PinSel_PinType type = PINSEL_GetPinType(portnum,pinnum);
-	
+ 
   if(type == PINSEL_PIN_TYPE_UNKNOWN)
     return PINSEL_RET_INVALID_PIN;
   if((type != PINSEL_PIN_TYPE_A ) &&
@@ -500,22 +501,22 @@ PINSEL_RET_CODE PINSEL_SetFilter (uint8_t portnum, uint8_t pinnum, uint8_t enabl
 
 /*********************************************************************/
 /**
- * @brief 		Control the 50ns glitch filter for I2C pins (type I)
- * @param[in]	portnum PORT number, should be in range: 0..3
- * @param[in]	pinnum	Pin number, should be in range: 0..31
- * @param[in] 	enable: the state of the pin that is expected to run
+ * @brief   Control the 50ns glitch filter for I2C pins (type I)
+ * @param[in] portnum PORT number, should be in range: 0..3
+ * @param[in] pinnum Pin number, should be in range: 0..31
+ * @param[in]  enable: the state of the pin that is expected to run
  - ENABLE: The noise pulses below approximately 10ns are filtered out
  - DISABLE: No input filtering is done.
- * @return 		PINSEL Return Code
- *				- PINSEL_RET_INVALID_PIN
- *				- PINSEL_RET_NOT_SUPPORT
- *				- PINSEL_RET_OK
+ * @return   PINSEL Return Code
+ *    - PINSEL_RET_INVALID_PIN
+ *    - PINSEL_RET_NOT_SUPPORT
+ *    - PINSEL_RET_OK
  **********************************************************************/
 PINSEL_RET_CODE PINSEL_SetI2CFilter (uint8_t portnum, uint8_t pinnum, uint8_t enable)
 {
   uint32_t *pPIN = NULL;
   PinSel_PinType type = PINSEL_GetPinType(portnum,pinnum);
-	
+
   if(type == PINSEL_PIN_TYPE_UNKNOWN)
     return PINSEL_RET_INVALID_PIN;
   if(type != PINSEL_PIN_TYPE_I)

@@ -122,7 +122,7 @@ void GPIOInit(void) {
  * any other initialization.
  */
 void __early_init(void) {
-  LPC178x_clock_init();
+  LPC17xx_clock_init();
 }
 
 /** @brief Driver default configuration.*/

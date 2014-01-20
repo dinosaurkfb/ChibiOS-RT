@@ -257,8 +257,18 @@ void sd_lld_start(SerialDriver *sdp, const SerialConfig *config) {
   if (sdp->state == SD_STOP) {
 #if LPC17xx_SERIAL_USE_UART0
     if (&SD1 == sdp) {
+#ifdef LPC177x_8x
+      /*
+       * Initialize UART0 pin connect
+       * P0.2: U0_TXD
+       * P0.3: U0_RXD
+       */
+      PINSEL_ConfigPin(0,2,1);
+      PINSEL_ConfigPin(0,3,1);
+#else
       LPC_PINCON->PINSEL0 &=~(0x0FL << 4);
       LPC_PINCON->PINSEL0 |= (0x01 << 4)|(0x01 << 6); 
+#endif
       LPC_SC->PCONP |= (1 << 3);
       nvicEnableVector(UART0_IRQn,
                        CORTEX_PRIORITY_MASK(LPC17xx_SERIAL_UART0_IRQ_PRIORITY));

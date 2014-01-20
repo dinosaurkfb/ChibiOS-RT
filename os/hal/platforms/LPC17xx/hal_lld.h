@@ -394,11 +394,6 @@ extern "C" {
 #endif
   void hal_lld_init(void);
   void LPC17xx_clock_init(void);
-  void LPC178x_clock_init(void);
-  int32_t PINSEL_ConfigPin(uint8_t portnum, uint8_t pinnum, uint8_t funcnum);
-  void GPIO_SetDir(uint8_t portNum, uint32_t bitValue, uint8_t dir);
-  void GPIO_SetValue(uint8_t portNum, uint32_t bitValue);
-  void GPIO_ClearValue(uint8_t portNum, uint32_t bitValue);
 
 #ifdef __cplusplus
 }

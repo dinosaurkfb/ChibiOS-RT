@@ -25,6 +25,7 @@
  * Board identifiers.
  */
 #define BOARD_LPC1788
+#define LPC177x_8x
 #define BOARD_NAME "HY-LPC1788 Board with LPC1788 chip."
 
 /*
