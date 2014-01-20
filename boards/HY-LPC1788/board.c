@@ -123,22 +123,6 @@ void GPIOInit(void) {
  */
 void __early_init(void) {
   LPC178x_clock_init();
-  GPIOInit();
-  for(;;)
-    {  
-      /*====LED-ON=======*/
-      GPIO_ClearValue( 2, (1<<21) ); 
-      GPIO_ClearValue( 1, (1<<13) );  
-      GPIO_ClearValue( 5, (1<<0) );  
-      GPIO_ClearValue( 5, (1<<1) );  
-      msDelay(1000);
-      /*====LED-OFF=======*/
-      GPIO_SetValue( 2, (1<<21) ); 
-      GPIO_SetValue( 1, (1<<13) );  
-      GPIO_SetValue( 5, (1<<0) );  
-      GPIO_SetValue( 5, (1<<1) );  
-      msDelay(1000);
-    }
 }
 
 /** @brief Driver default configuration.*/
@@ -185,6 +169,22 @@ void LOG_PRINT(const char *fmt, ...) {
  * Board-specific initialization code.
  */
 void boardInit(void) {
+  GPIOInit();
+  for(;;)
+    {  
+      /*====LED-ON=======*/
+      GPIO_ClearValue( 2, (1<<21) ); 
+      GPIO_ClearValue( 1, (1<<13) );  
+      GPIO_ClearValue( 5, (1<<0) );  
+      GPIO_ClearValue( 5, (1<<1) );  
+      msDelay(1000);
+      /*====LED-OFF=======*/
+      GPIO_SetValue( 2, (1<<21) ); 
+      GPIO_SetValue( 1, (1<<13) );  
+      GPIO_SetValue( 5, (1<<0) );  
+      GPIO_SetValue( 5, (1<<1) );  
+      msDelay(1000);
+    }
   ledOperate();
 
 #if LOG_PRINT_USE_UART0

@@ -43,9 +43,9 @@
  */
 #define PLATFORM_NAME           "LPC17xx"
 
-#define IRCOSCCLK               4000000UL	/**< High speed internal clock. */
+#define IRCOSCCLK               4000000UL   /**< High speed internal clock. */
 
-#define CLKSRCSEL_IRCOSC        0UL      	/**< Clock source is IRC.       */
+#define CLKSRCSEL_IRCOSC        0UL         /**< Clock source is IRC.       */
 #define CLKSRCSEL_MAINOSC       1UL         /**< Clock source is Main oscillator.   */
 #define CLKSRCSEL_RTCOSC        2UL         /**< Clock source is RTC oscillator.    */
 

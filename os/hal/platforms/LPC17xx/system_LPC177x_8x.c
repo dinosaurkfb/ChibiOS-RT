@@ -218,7 +218,6 @@
 /** @addtogroup LPC177x_8x_System_Defines  LPC177x_8x System Defines
   @{
  */
-#define CLOCK_SETUP           1
 #define SCS_Val               0x00000021
 #define CLKSRCSEL_Val         0x00000001
 #define PLL0_SETUP            1
@@ -318,46 +317,37 @@
 #define __ECLK_DIV			  ((EMCCLKSEL_Val & 0x01) + 1)
 
 /* Determine core clock frequency according to settings */
-#if (CLOCK_SETUP)                       /* Clock Setup                        */
 
-  #if ((CLKSRCSEL_Val & 0x01) == 1) && ((SCS_Val & 0x20)== 0)
-   #error "Main Oscillator is selected as clock source but is not enabled!"
-  #endif
-
-  #if ((CCLKSEL_Val & 0x100) == 0x100) && (PLL0_SETUP == 0)
-   #error "Main PLL is selected as clock source but is not enabled!"
-  #endif
-
-  #if ((CCLKSEL_Val & 0x100) == 0)      /* cclk = sysclk */
-    #if ((CLKSRCSEL_Val & 0x01) == 0)   /* sysclk = irc_clk */
-        #define __CORE_CLK (IRC_OSC / __CCLK_DIV)
-		#define __PER_CLK  (IRC_OSC/  __PCLK_DIV)
-        #define __EMC_CLK  (__CORE_CLK/  __ECLK_DIV)
-    #else                               /* sysclk = osc_clk */
-        #define __CORE_CLK (OSC_CLK / __CCLK_DIV)
-        #define __PER_CLK  (OSC_CLK/  __PCLK_DIV)
-        #define __EMC_CLK  (__CORE_CLK/  __ECLK_DIV)
-    #endif
-  #else                                 /* cclk = pll_clk */
-    #if ((CLKSRCSEL_Val & 0x01) == 0)   /* sysclk = irc_clk */
-        #define __CORE_CLK (__PLL0_CLK(IRC_OSC) / __CCLK_DIV)
-        #define __PER_CLK  (__PLL0_CLK(IRC_OSC) / __PCLK_DIV)
-        #define __EMC_CLK  (__CORE_CLK / __ECLK_DIV)
-    #else                               /* sysclk = osc_clk */
-        #define __CORE_CLK (__PLL0_CLK(OSC_CLK) / __CCLK_DIV)
-        #define __PER_CLK  (__PLL0_CLK(OSC_CLK) / __PCLK_DIV)
-		#define __EMC_CLK  (__CORE_CLK / __ECLK_DIV)
-    #endif
-  #endif
-
- /**
-  * @}
-  */
-#else
-        #define __CORE_CLK (IRC_OSC)
-        #define __PER_CLK  (IRC_OSC)
-        #define __EMC_CLK  (__CORE_CLK)
+#if ((CLKSRCSEL_Val & 0x01) == 1) && ((SCS_Val & 0x20)== 0)
+#error "Main Oscillator is selected as clock source but is not enabled!"
 #endif
+
+#if ((CCLKSEL_Val & 0x100) == 0x100) && (PLL0_SETUP == 0)
+#error "Main PLL is selected as clock source but is not enabled!"
+#endif
+
+#if ((CCLKSEL_Val & 0x100) == 0)      /* cclk = sysclk */
+#if ((CLKSRCSEL_Val & 0x01) == 0)   /* sysclk = irc_clk */
+#define __CORE_CLK (IRC_OSC / __CCLK_DIV)
+#define __PER_CLK  (IRC_OSC/  __PCLK_DIV)
+#define __EMC_CLK  (__CORE_CLK/  __ECLK_DIV)
+#else                               /* sysclk = osc_clk */
+#define __CORE_CLK (OSC_CLK / __CCLK_DIV)
+#define __PER_CLK  (OSC_CLK/  __PCLK_DIV)
+#define __EMC_CLK  (__CORE_CLK/  __ECLK_DIV)
+#endif
+#else                                 /* cclk = pll_clk */
+#if ((CLKSRCSEL_Val & 0x01) == 0)   /* sysclk = irc_clk */
+#define __CORE_CLK (__PLL0_CLK(IRC_OSC) / __CCLK_DIV)
+#define __PER_CLK  (__PLL0_CLK(IRC_OSC) / __PCLK_DIV)
+#define __EMC_CLK  (__CORE_CLK / __ECLK_DIV)
+#else                               /* sysclk = osc_clk */
+#define __CORE_CLK (__PLL0_CLK(OSC_CLK) / __CCLK_DIV)
+#define __PER_CLK  (__PLL0_CLK(OSC_CLK) / __PCLK_DIV)
+#define __EMC_CLK  (__CORE_CLK / __ECLK_DIV)
+#endif
+#endif
+
 /** @addtogroup LPC177x_8x_System_Public_Variables  LPC177x_8x System Public Variables
   @{
  */
@@ -384,38 +374,38 @@ void SystemCoreClockUpdate (void)            /* Get Core Clock Frequency      */
   /* Determine clock frequency according to clock register values             */
   if ((LPC_SC->CCLKSEL &0x100) == 0) {            /* cclk = sysclk    */
     if ((LPC_SC->CLKSRCSEL & 0x01) == 0) {    /* sysclk = irc_clk */
-		  SystemCoreClock = __CLK_DIV(IRC_OSC , (LPC_SC->CCLKSEL & 0x1F));
-          PeripheralClock = __CLK_DIV(IRC_OSC , (LPC_SC->PCLKSEL & 0x1F));
-          EMCClock        = (SystemCoreClock / ((LPC_SC->EMCCLKSEL & 0x01)+1));
+      SystemCoreClock = __CLK_DIV(IRC_OSC , (LPC_SC->CCLKSEL & 0x1F));
+      PeripheralClock = __CLK_DIV(IRC_OSC , (LPC_SC->PCLKSEL & 0x1F));
+      EMCClock        = (SystemCoreClock / ((LPC_SC->EMCCLKSEL & 0x01)+1));
     }
     else {                                        /* sysclk = osc_clk */
       if ((LPC_SC->SCS & 0x40) == 0) {
-          SystemCoreClock = 0;                      /* this should never happen! */
-          PeripheralClock = 0;
-          EMCClock        = 0;
+	SystemCoreClock = 0;                      /* this should never happen! */
+	PeripheralClock = 0;
+	EMCClock        = 0;
       }
       else {
-          SystemCoreClock = __CLK_DIV(OSC_CLK , (LPC_SC->CCLKSEL & 0x1F));
-          PeripheralClock = __CLK_DIV(OSC_CLK , (LPC_SC->PCLKSEL & 0x1F));	  	
-          EMCClock        = (SystemCoreClock / ((LPC_SC->EMCCLKSEL & 0x01)+1));
+	SystemCoreClock = __CLK_DIV(OSC_CLK , (LPC_SC->CCLKSEL & 0x1F));
+	PeripheralClock = __CLK_DIV(OSC_CLK , (LPC_SC->PCLKSEL & 0x1F));	  	
+	EMCClock        = (SystemCoreClock / ((LPC_SC->EMCCLKSEL & 0x01)+1));
       }
     }
   }
   else {                                          /* cclk = pll_clk */
     if ((LPC_SC->PLL0STAT & 0x100) == 0) {        /* PLL0 not enabled */
-          SystemCoreClock = 0;                      /* this should never happen! */
-          PeripheralClock = 0;
-          EMCClock 		  = 0;
+      SystemCoreClock = 0;                      /* this should never happen! */
+      PeripheralClock = 0;
+      EMCClock 		  = 0;
     }
     else {
       if ((LPC_SC->CLKSRCSEL & 0x01) == 0) {    /* sysclk = irc_clk */
-          uint8_t mul = ((LPC_SC->PLL0STAT & 0x1F) + 1);
-          uint8_t cpu_div = (LPC_SC->CCLKSEL & 0x1F);
-          uint8_t per_div = (LPC_SC->PCLKSEL & 0x1F);
-          uint8_t emc_div = (LPC_SC->EMCCLKSEL & 0x01)+1;
-          SystemCoreClock = __CLK_DIV(IRC_OSC * mul , cpu_div);
-          PeripheralClock = __CLK_DIV(IRC_OSC * mul , per_div);
-          EMCClock        = SystemCoreClock / emc_div;
+	uint8_t mul = ((LPC_SC->PLL0STAT & 0x1F) + 1);
+	uint8_t cpu_div = (LPC_SC->CCLKSEL & 0x1F);
+	uint8_t per_div = (LPC_SC->PCLKSEL & 0x1F);
+	uint8_t emc_div = (LPC_SC->EMCCLKSEL & 0x01)+1;
+	SystemCoreClock = __CLK_DIV(IRC_OSC * mul , cpu_div);
+	PeripheralClock = __CLK_DIV(IRC_OSC * mul , per_div);
+	EMCClock        = SystemCoreClock / emc_div;
       }
       else {                                        /* sysclk = osc_clk */
         if ((LPC_SC->SCS & 0x40) == 0) {
@@ -427,7 +417,7 @@ void SystemCoreClockUpdate (void)            /* Get Core Clock Frequency      */
           uint8_t mul = ((LPC_SC->PLL0STAT & 0x1F) + 1);
           uint8_t cpu_div = (LPC_SC->CCLKSEL & 0x1F);
           uint8_t per_div = (LPC_SC->PCLKSEL & 0x1F);
-		  uint8_t emc_div = (LPC_SC->EMCCLKSEL & 0x01)+1;
+	  uint8_t emc_div = (LPC_SC->EMCCLKSEL & 0x01)+1;
           SystemCoreClock = __CLK_DIV(OSC_CLK * mul , cpu_div);
           PeripheralClock = __CLK_DIV(OSC_CLK * mul , per_div);
           EMCClock        = SystemCoreClock / emc_div;
@@ -437,39 +427,39 @@ void SystemCoreClockUpdate (void)            /* Get Core Clock Frequency      */
   }
   /* ---update USBClock------------------*/
   if(LPC_SC->USBCLKSEL & (0x01<<8))//Use PLL0 as the input to the USB clock divider
-  {
-	  switch (LPC_SC->USBCLKSEL & 0x1F)
+    {
+      switch (LPC_SC->USBCLKSEL & 0x1F)
+	{
+	case 0:
+	  USBClock = 0; //no clock will be provided to the USB subsystem
+	  break;
+	case 4:
+	case 6:
 	  {
-	  case 0:
-		  USBClock = 0; //no clock will be provided to the USB subsystem
-		  break;
-	  case 4:
-	  case 6:
-            {
-                 uint8_t mul = ((LPC_SC->PLL0STAT & 0x1F) + 1);
-                 uint8_t usb_div = (LPC_SC->USBCLKSEL & 0x1F);
-		  if(LPC_SC->CLKSRCSEL & 0x01)	//pll_clk_in = main_osc
-			  USBClock = OSC_CLK * mul / usb_div;
-		  else //pll_clk_in = irc_clk
-			  USBClock = IRC_OSC * mul / usb_div;
-            }
-            break;
-	  default:
-		  USBClock = 0;  /* this should never happen! */
+	    uint8_t mul = ((LPC_SC->PLL0STAT & 0x1F) + 1);
+	    uint8_t usb_div = (LPC_SC->USBCLKSEL & 0x1F);
+	    if(LPC_SC->CLKSRCSEL & 0x01)	//pll_clk_in = main_osc
+	      USBClock = OSC_CLK * mul / usb_div;
+	    else //pll_clk_in = irc_clk
+	      USBClock = IRC_OSC * mul / usb_div;
 	  }
-  }
+	  break;
+	default:
+	  USBClock = 0;  /* this should never happen! */
+	}
+    }
   else if(LPC_SC->USBCLKSEL & (0x02<<8))//usb_input_clk = alt_pll (pll1)
-  {
-	  if(LPC_SC->CLKSRCSEL & 0x01)	//pll1_clk_in = main_osc
-	  		USBClock = (OSC_CLK * ((LPC_SC->PLL1STAT & 0x1F) + 1));
-	  else //pll1_clk_in = irc_clk
-	  		USBClock = (IRC_OSC * ((LPC_SC->PLL0STAT & 0x1F) + 1));
-  }
+    {
+      if(LPC_SC->CLKSRCSEL & 0x01)	//pll1_clk_in = main_osc
+	USBClock = (OSC_CLK * ((LPC_SC->PLL1STAT & 0x1F) + 1));
+      else //pll1_clk_in = irc_clk
+	USBClock = (IRC_OSC * ((LPC_SC->PLL0STAT & 0x1F) + 1));
+    }
   else
-	  USBClock = 0; /* this should never happen! */
+    USBClock = 0; /* this should never happen! */
 }
 
-  /* Determine clock frequency according to clock register values             */
+/* Determine clock frequency according to clock register values             */
 
 /**
  * Initialize the system
@@ -482,7 +472,6 @@ void SystemCoreClockUpdate (void)            /* Get Core Clock Frequency      */
  */
 void LPC178x_clock_init(void) {
 
-#if (CLOCK_SETUP)                       /* Clock Setup                        */
   LPC_SC->SCS       = SCS_Val;
   if (SCS_Val & (1 << 5)) {             /* If Main Oscillator is enabled      */
     while ((LPC_SC->SCS & (1<<6)) == 0);/* Wait for Oscillator to be ready    */
@@ -512,7 +501,6 @@ void LPC178x_clock_init(void) {
   LPC_SC->PCLKSEL   = PCLKSEL_Val;      /* Peripheral Clock Selection         */
   LPC_SC->PCONP     = PCONP_Val;        /* Power Control for Peripherals      */
   LPC_SC->CLKOUTCFG = CLKOUTCFG_Val;    /* Clock Output Configuration         */
-#endif
 
   LPC_SC->PBOOST 	|= 0x03;			/* Power Boost control				*/
 
