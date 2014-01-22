@@ -60,6 +60,10 @@
 #define CLKOUTSEL_IRCOSC        2UL         /**< Clock output is IRC oscillator.    */
 #define CLKOUTSEL_USBCLK        3UL         /**< Clock output is USB clock.         */
 #define CLKOUTSEL_RTCOSC        4UL         /**< Clock output is RTC oscillator.    */
+#ifdef LPC177x_8x
+#define CLKOUTSEL_SPIFI_CLK     5UL         /**< Clock output is SPIFI clock.       */
+#define CLKOUTSEL_WD_OSC        6UL         /**< Clock output is Watchdog oscillator. */
+#endif //ifdef LPC177x_8x
 
 #define PCLKSEL_CCLK_DIV_4      0UL         /**< Peripheral clock output is CCLK/4  */
 #define PCLKSEL_CCLK            1UL         /**< Peripheral clock output is CCLK    */
@@ -141,7 +145,7 @@
  * @note    The value must be chosen between (1...255).
  */
 #if !defined(LPC17xx_CCLK_DIV) || defined(__DOXYGEN__)
-#define LPC17xx_CCLK_DIV                    4
+#define LPC17xx_CCLK_DIV                    4UL
 #endif
 
 /**
@@ -198,6 +202,18 @@
 /**
  * @brief   PLL input clock frequency.
  */
+#ifdef LPC177x_8x
+
+#if (LPC17xx_SYSCLK_SELECT == CLKSRCSEL_IRCOSC) || defined(__DOXYGEN__)
+#define LPC17xx_SYSCLK          IRCOSCCLK
+#elif LPC17xx_SYSCLK_SELECT == CLKSRCSEL_MAINOSC
+#define LPC17xx_SYSCLK          MAINOSCCLK
+#else
+#error "Invalid LPC17xx_SYSCLK_SELECT clock source specified."
+#endif
+
+#else //ifdef LPC177x_8x
+
 #if (LPC17xx_SYSCLK_SELECT == CLKSRCSEL_IRCOSC) || defined(__DOXYGEN__)
 #define LPC17xx_SYSCLK          IRCOSCCLK
 #elif LPC17xx_SYSCLK_SELECT == CLKSRCSEL_MAINOSC
@@ -207,6 +223,36 @@
 #else
 #error "Invalid LPC17xx_SYSCLK_SELECT clock source specified."
 #endif
+
+#endif //ifdef LPC177x_8x
+
+#ifdef LPC177x_8x
+
+/**
+ * @brief   MSEL mask in SYSPLLCTRL register.
+ */
+#if (LPC17xx_MAINPLL_MUL >= 1 && LPC17xx_MAINPLL_MUL <= 32) || defined(__DOXYGEN__)
+#define LPC17xx_PLL0CFG_MSEL0 (LPC17xx_MAINPLL_MUL - 1)
+#else
+#error "Invalid LPC17xx_PLL0CFG_MUL value."
+#endif
+
+/**
+ * @brief   PSEL mask in PLL0CFG register.
+ */
+#if (LPC17xx_MAINPLL_PREDIV == 2) || defined(__DOXYGEN__)
+#define LPC17xx_PLL0CFG_PSEL0   0UL
+#elif LPC17xx_MAINPLL_PREDIV == 4
+#define LPC17xx_PLL0CFG_PSEL0   1UL
+#elif LPC17xx_MAINPLL_PREDIV == 8
+#define LPC17xx_PLL0CFG_PSEL0   2UL
+#elif LPC17xx_MAINPLL_PREDIV == 16
+#define LPC17xx_PLL0CFG_PSEL0   3UL
+#else
+#error "Invalid LPC17xx_MAINPLL_PREDIV value (2, 4, 8, 16 accepted)."
+#endif
+
+#else //ifdef LPC177x_8x
 
 /**
  * @brief   MSEL mask in SYSPLLCTRL register.
@@ -226,12 +272,31 @@
 #error "Invalid LPC17xx_MAINPLL_PREDIV value (1 to 32 accepted)."
 #endif
 
+#endif //ifdef LPC177x_8x
+
 /**
  * @brief   CCO frequency.
  */
+#ifdef LPC177x_8x
+#define  LPC17xx_MAINPLLCCO   ((LPC17xx_MAINPLL_MUL *    \
+                              LPC17xx_SYSCLK) * LPC17xx_MAINPLL_PREDIV)
+#if (LPC17xx_MAINPLLCCO < 156000000) || (LPC17xx_SYSPLLCCO > 320000000)
+#error "CCO frequency out of the acceptable range (156...320)."
+#endif
+
+/**
+ * @brief   PLL output clock frequency.
+ */
+#if LPC17xx_MAINPLL_ENABLE
+#define  LPC17xx_MAINPLLCLK   LPC17xx_MAINPLL_MUL * LPC17xx_SYSCLK
+#else
+#define  LPC17xx_MAINPLLCLK   LPC17xx_SYSCLK
+#endif
+
+#else //ifdef LPC177x_8x
+
 #define  LPC17xx_MAINPLLCCO   ((LPC17xx_MAINPLL_MUL *    \
                               LPC17xx_SYSCLK)/LPC17xx_MAINPLL_PREDIV)
-
 #if (LPC17xx_MAINPLLCCO < 275000000) || (LPC17xx_SYSPLLCCO > 550000000)
 #error "CCO frequency out of the acceptable range (275...550)."
 #endif
@@ -245,6 +310,8 @@
 #define  LPC17xx_MAINPLLCLK   LPC17xx_SYSCLK
 #endif
 
+#endif //ifdef LPC177x_8x
+
 /**
  * @brief   CPU clock frequency.
  * @note 	Most of LPC17xx have max 100 MHz clock.
@@ -254,7 +321,82 @@
 #error "CPU Clock out of range."
 #endif
 
+#ifdef LPC177x_8x
+
+#if LPC17xx_ALTPLL_ENABLE
+/**
+ * @brief   Main oscillator out of range.
+ */
+#if ((MAINOSCCLK < 10000000) || (MAINOSCCLK > 25000000)) || defined(__DOXYGEN__)
+#error "Main oscillator clock out of range."
+#endif
+
+/**
+ * @brief   MSEL1 mask in PLL1CFG register.
+ */
+#if (LPC17xx_ALTPLL_MUL >= 1) && (LPC17xx_ALTPLL_MUL <= 32) || defined(__DOXYGEN__)
+#define LPC17xx_PLL1CFG_MSEL1 (LPC17xx_ALTPLL_MUL - 1)
+#else
+#error "Invalid LPC17xx_ALTPLL_MUL value (1 to 32 accepted)."
+#endif
+
+/**
+ * @brief   PSEL1 mask in PLL1CFG register.
+ */
+#if (LPC17xx_ALTPLL_DIV == 2) || defined(__DOXYGEN__)
+#define LPC17xx_PLL1CFG_PSEL1 		0UL
+#elif (LPC17xx_ALTPLL_DIV == 4)
+#define LPC17xx_PLL1CFG_PSEL1 		1UL
+#elif (LPC17xx_ALTPLL_DIV == 8)
+#define LPC17xx_PLL1CFG_PSEL1 		2UL
+#elif (LPC17xx_ALTPLL_DIV == 16)
+#define LPC17xx_PLL1CFG_PSEL1 		3UL
+#else
+#error "Invalid LPC17xx_ALTPLL_DIV value (2, 4, 8, 16 accepted)."
+#endif
+
+/**
+ * @brief   ALT PLL CCO frequency.
+ */
+#define  LPC17xx_ALTPLLCCO   (MAINOSCCLK * LPC17xx_ALTPLL_MUL * \
+								LPC17xx_ALTPLL_DIV)
+
+#if (LPC17xx_ALTPLLCCO < 156000000) || (LPC17xx_SYSPLLCCO > 320000000)
+#error "CCO frequency out of the acceptable range (156...320)"
+#endif
+
+/**
+ * @brief   USB clock frequency.
+ * @note 	Must be 48 MHz.
+ */
+/* #define LPC17xx_USBCLK     (LPC17xx_USBPLLCCO/LPC17xx_USBPLL_DIV) */
+/* #if (LPC17xx_USBCLK != 48000000) || defined(__DOXYGEN__) */
+/* #error "USB clock out of range." */
+/* #endif */
+
+#endif //ifdef LPC17xx_ALTPLL_ENABLE
+
+/**
+ * @brief   Peripheral clock frequency.
+ */
+#if (LPC17xx_PCLK_DIV > 0 && LPC17xx_PCLK_DIV < 32) || defined(__DOXYGEN__)
+#define LPC17xx_PCLK            (LPC17xx_CCLK/LPC17xx_PCLK_DIV)
+#define LPC17xx_PCLKSEL		LPC17xx_PCLK_DIV
+#else
+#error "Invalid LPC17xx_PCLK_SELECT value"
+#endif
+
+/**
+ * @brief   LPC17xx_CLKOUT_DIV out of range.
+ */
+#if ((LPC17xx_CLKOUT_DIV < 1) && (LPC17xx_CLKOUT_DIV > 16)) || defined(__DOXYGEN__)
+#error "Invalid LPC17xx_CLKOUT_DIV value (1 to 16 accepted)."
+#endif
+
+#else //ifdef LPC177x_8x
+
 #if LPC17xx_USBPLL_ENABLE
+
 /**
  * @brief   Main oscillator out of range.
  */
@@ -304,7 +446,7 @@
 #if (LPC17xx_USBCLK != 48000000) || defined(__DOXYGEN__)
 #error "USB clock out of range."
 #endif
-#endif
+#endif //ifdef LPC17xx_USBPLL_ENABLE
 
 /**
  * @brief   Peripheral clock frequency.
@@ -336,6 +478,8 @@
 #error "Invalid LPC17xx_CLKOUT_DIV value (1 to 16 accepted)."
 #endif
 
+#endif //ifdef LPC177x_8x
+
 /**
  * @brief   CLKOUT frequency.
  */
@@ -349,6 +493,14 @@
 #define LPC17xx_CLKOUTCLK (LPC17xx_USBCLK/LPC17xx_CLKOUT_DIV)
 #elif (LPC17xx_CLKOUT_SELECT == CLKOUTSEL_RTCOSC)
 #define LPC17xx_CLKOUTCLK (RTCOSCCLK/LPC17xx_CLKOUT_DIV)
+
+#ifdef LPC177x_8x
+#elif (LPC17xx_CLKOUT_SELECT == CLKOUTSEL_SPIFI_CLK)
+#define LPC17xx_CLKOUTCLK (SPIFICLK/LPC17xx_CLKOUT_DIV)
+#elif (LPC17xx_CLKOUT_SELECT == CLKOUTSEL_WD_OSC)
+#define LPC17xx_CLKOUTCLK (WDOSCCLK/LPC17xx_CLKOUT_DIV)
+#endif //ifdef LPC177x_8x
+
 #else
 #error "Invalid LPC17xx_CLKOUT_SELECT value."
 #endif
