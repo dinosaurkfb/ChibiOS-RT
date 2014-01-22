@@ -30,6 +30,7 @@ const PALConfig pal_default_config = {
  {VAL_GPIO2DATA, VAL_GPIO2DIR},
  {VAL_GPIO3DATA, VAL_GPIO3DIR},
  {VAL_GPIO4DATA, VAL_GPIO4DIR},
+ {VAL_GPIO5DATA, VAL_GPIO5DIR},
 };
 #endif
 
@@ -49,11 +50,71 @@ void msDelay (uint32_t ms) {
   }
 }
 
-#define LED_BITS_WIDTH    8
-#define LED_BITS_OFFSET   0
 
+/**
+ * @brief   Turn off a LED.
+ *
+ * @param[in] x        Number of LED to turned off.
+ *
+ * @notapi
+ */
+void LEDOFF(uint8_t x) {
+  switch (x) {
+  case 1:
+    palSetPad(GPIO2, GPIO2_LD6);
+    break;
+  case 2:
+    palSetPad(GPIO1, GPIO1_LD7);
+    break;
+  case 3:
+    palSetPad(GPIO5, GPIO5_LD8);
+    break;
+  case 4:
+    palSetPad(GPIO5, GPIO5_LD9);
+    break;
+  default:
+    break;
+  }
+}
+
+/**
+ * @brief   Turn on a LED.
+ *
+ * @param[in] x        Number of LED to turned on.
+ *
+ * @notapi
+ */
+void LEDON(uint8_t x) {
+  switch (x) {
+  case 1:
+    palClearPad(GPIO2, GPIO2_LD6);
+     break;
+ case 2:
+    palClearPad(GPIO1, GPIO1_LD7);
+    break;
+  case 3:
+    palClearPad(GPIO5, GPIO5_LD8);
+    break;
+  case 4:
+    palClearPad(GPIO5, GPIO5_LD9);
+    break;
+  default:
+    break;
+  }
+}
+
+/**
+ * @brief   Use four leds to show a number in binary format.
+ *
+ * @param[in] mum       Number to be shown.
+ *
+ * @api
+ */
 void _ledShowBin(uint32_t num) {
-  palWriteGroup(GPIO2, PAL_GROUP_MASK(LED_BITS_WIDTH), LED_BITS_OFFSET, num);
+  num & PAL_PORT_BIT(0) ? LEDON(1) : LEDOFF(1);
+  num & PAL_PORT_BIT(1) ? LEDON(2) : LEDOFF(2);
+  num & PAL_PORT_BIT(2) ? LEDON(3) : LEDOFF(3);
+  num & PAL_PORT_BIT(3) ? LEDON(4) : LEDOFF(4);
 }
 
 /**
@@ -95,25 +156,13 @@ void ledSingleBlinkBin(uint32_t num, uint32_t interval) {
  */
 void ledOperate(void)
 {
-  ledDoubleBlinkBin(0xFF, 100);
-}
-
-void GPIOInit(void) {
-  /* LED1   P2.21 CORE and SDK Both*/
-  /* LED2   P1.13 SDK Only */      
-  /* LED3   P5.0  SDK Only */        
-  /* LED4   P5.1  SDK Only */    		
-  PINSEL_ConfigPin(2,21,0);	   /* P2.21 - GPIO */
-  GPIO_SetDir(2, (1<<21), 1);
-
-  PINSEL_ConfigPin(1,13,0);	   /* P1.13 - GPIO */
-  GPIO_SetDir(1, (1<<13), 1);
-
-  PINSEL_ConfigPin(5,0,0);	   /* P5.0 - GPIO */
-  GPIO_SetDir(5, (1<<0), 1);
-
-  PINSEL_ConfigPin(5,1,0);	   /* P5.1 - GPIO */
-  GPIO_SetDir(5, (1<<1), 1);
+  ledDoubleBlinkBin(0x1, 50);
+  msDelay(100);
+  ledDoubleBlinkBin(0x3, 50);
+  msDelay(100);
+  ledDoubleBlinkBin(0x7, 50);
+  msDelay(100);
+  ledDoubleBlinkBin(0xF, 50);
 }
 
 /*
@@ -169,22 +218,6 @@ void LOG_PRINT(const char *fmt, ...) {
  * Board-specific initialization code.
  */
 void boardInit(void) {
-  GPIOInit();
-  for(;;)
-    {  
-      /*====LED-ON=======*/
-      GPIO_ClearValue( 2, (1<<21) ); 
-      GPIO_ClearValue( 1, (1<<13) );  
-      GPIO_ClearValue( 5, (1<<0) );  
-      GPIO_ClearValue( 5, (1<<1) );  
-      msDelay(1000);
-      /*====LED-OFF=======*/
-      GPIO_SetValue( 2, (1<<21) ); 
-      GPIO_SetValue( 1, (1<<13) );  
-      GPIO_SetValue( 5, (1<<0) );  
-      GPIO_SetValue( 5, (1<<1) );  
-      msDelay(1000);
-    }
   ledOperate();
 
 #if LOG_PRINT_USE_UART0
@@ -194,5 +227,4 @@ void boardInit(void) {
    */
   sdStart(&SD1, &uart0_config);
 #endif
-
 }

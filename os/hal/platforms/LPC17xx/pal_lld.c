@@ -71,6 +71,11 @@ void _pal_lld_init(const PALConfig *config) {
   LPC_GPIO2->FIOPIN = config->P2.data;
   LPC_GPIO3->FIOPIN = config->P3.data;
   LPC_GPIO4->FIOPIN = config->P4.data;
+#ifdef LPC177x_8x
+  LPC_GPIO5->FIODIR = config->P5.dir;
+  LPC_GPIO5->FIOMASK = 0;
+  LPC_GPIO5->FIOPIN = config->P5.data;
+#endif //ifdef LPC177x_8x
 }
 
 /**

@@ -73,6 +73,10 @@ typedef struct {
   lpc17xx_gpio_setup_t   P3;
   /** @brief GPIO 4 setup data.*/
   lpc17xx_gpio_setup_t   P4;
+#ifdef LPC177x_8x
+  /** @brief GPIO 5 setup data.*/
+  lpc17xx_gpio_setup_t   P5;
+#endif
 } PALConfig;
 
 /**
@@ -130,10 +134,18 @@ typedef LPC_GPIO_TypeDef *ioportid_t;
 #define GPIO3           LPC_GPIO3
 
 /**
- * @brief   GPIO3 port identifier.
+ * @brief   GPIO4 port identifier.
  */
 #define IOPORT5         LPC_GPIO4
 #define GPIO4           LPC_GPIO4
+
+#ifdef LPC177x_8x
+/**
+ * @brief   GPIO5 port identifier.
+ */
+#define IOPORT6         LPC_GPIO5
+#define GPIO5           LPC_GPIO5
+#endif //ifdef LPC177x_8x
 
 /*===========================================================================*/
 /* Implementation, some of the following macros could be implemented as      */

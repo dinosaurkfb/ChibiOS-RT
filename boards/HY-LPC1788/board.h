@@ -39,14 +39,11 @@
 #define VAL_GPIO0DIR            0x00000000
 #define VAL_GPIO0DATA           0x00000000
 
-#define LEDOFF(x) palSetPad(GPIO2, GPIO2_LD2)
-#define LEDON(x) palClearPad(GPIO2, GPIO2_LD2)
-
 /*
  * GPIO 1 initial setup.
  */
-#define VAL_GPIO1DIR            0x00000000
-#define VAL_GPIO1DATA           0x00000000
+#define VAL_GPIO1DIR            PAL_PORT_BIT(GPIO1_LD7)
+#define VAL_GPIO1DATA           PAL_PORT_BIT(GPIO1_LD7)
 
 /*
  * GPIO 2 initial setup.
@@ -66,12 +63,30 @@
 #define VAL_GPIO4DATA           0x00000000
 
 /*
+ * GPIO 5 initial setup.
+ */
+#define VAL_GPIO5DIR            PAL_PORT_BIT(GPIO5_LD8)    |               \
+                                PAL_PORT_BIT(GPIO5_LD9)
+#define VAL_GPIO5DATA           PAL_PORT_BIT(GPIO5_LD8)    |               \
+                                PAL_PORT_BIT(GPIO5_LD9)
+/*
  * Pin definitions.
  */
-#define GPIO5_LD8               0
-#define GPIO5_LD9               1
-#define GPIO1_LD7               13
+/* Note: Both LD2 in the core board and LD6 in the SDK board connect to P2.21 */
+/* LD2 in the core board connects to P2.21 */
 #define GPIO2_LD2               21
+
+/* LED1 in SDK board connects to P2.21 */
+#define GPIO2_LD6               21
+
+/* LED2 in SDK board connects to P1.13 */
+#define GPIO1_LD7               13
+
+/* LED3 in SDK board connects to P5.0 */
+#define GPIO5_LD8               0
+
+/* LED4 in SDK board connects to P5.1 */
+#define GPIO5_LD9               1
 
 
 /**
@@ -90,6 +105,8 @@ extern "C" {
 #endif
   void boardInit(void);
   void msDelay (uint32_t ulTime);
+  void LEDON(uint8_t x);
+  void LEDOFF(uint8_t x);
   void ledSingleBlinkBin(uint32_t num, uint32_t interval);
   void ledDoubleBlinkBin(uint32_t num, uint32_t interval);
   void LOG_PRINT(const char *fmt, ...);
