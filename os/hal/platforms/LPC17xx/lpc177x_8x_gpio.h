@@ -39,6 +39,9 @@
 #ifndef __LPC177X_8X_GPIO_H_
 #define __LPC177X_8X_GPIO_H_
 
+/* Currently, this file has only been used and tested in LPC178x platform. */
+#ifdef LPC177x_8x
+
 /* Includes ------------------------------------------------------------------- */
 #include "LPC17xx.h"
 #include "lpc_types.h"
@@ -185,4 +188,5 @@ extern "C"
  * @}
  */
 
+#endif //ifdef LPC177x_8x
 /* --------------------------------- End Of File ------------------------------ */

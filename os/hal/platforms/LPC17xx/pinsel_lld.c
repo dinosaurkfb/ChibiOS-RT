@@ -37,6 +37,9 @@
 #include "ch.h"
 #include "hal.h"
 
+/* Currently, this file has only been used and tested in LPC178x platform. */
+#ifdef LPC177x_8x
+
 /* Includes ------------------------------------------------------------------- */
 #include "pinsel_lld.h"
 
@@ -547,4 +550,5 @@ PINSEL_RET_CODE PINSEL_SetI2CFilter (uint8_t portnum, uint8_t pinnum, uint8_t en
  * @}
  */
 
+#endif //ifdef LPC177x_8x
 /* --------------------------------- End Of File ------------------------------ */

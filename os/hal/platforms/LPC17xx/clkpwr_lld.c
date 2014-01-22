@@ -37,6 +37,9 @@
 #include "ch.h"
 #include "hal.h"
 
+/* Currently, this file has only been used and tested in LPC178x platform. */
+#ifdef LPC177x_8x
+
 /* Includes ------------------------------------------------------------------- */
 #include "clkpwr_lld.h"
 
@@ -328,4 +331,5 @@ void CLKPWR_DeepPowerDown(void)
  * @}
  */
 
+#endif //ifdef LPC177x_8x
 /* --------------------------------- End Of File ------------------------------ */

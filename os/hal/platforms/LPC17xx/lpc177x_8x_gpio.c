@@ -38,6 +38,9 @@
 #include "ch.h"
 #include "hal.h"
 
+/* Currently, this file has only been used and tested in LPC178x platform. */
+#ifdef LPC177x_8x
+
 /* Includes ------------------------------------------------------------------- */
 #include "lpc177x_8x_gpio.h"
 #include "clkpwr_lld.h"
@@ -921,4 +924,5 @@ uint8_t FIO_ByteReadValue(uint8_t portNum, uint8_t byteNum)
  * @}
  */
 
+#endif //ifdef LPC177x_8x
 /* --------------------------------- End Of File ------------------------------ */
