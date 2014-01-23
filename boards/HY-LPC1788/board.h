@@ -107,6 +107,7 @@ extern "C" {
   void msDelay (uint32_t ulTime);
   void LEDON(uint8_t x);
   void LEDOFF(uint8_t x);
+  void ToggleLED(uint8_t x);
   void ledSingleBlinkBin(uint32_t num, uint32_t interval);
   void ledDoubleBlinkBin(uint32_t num, uint32_t interval);
   void LOG_PRINT(const char *fmt, ...);

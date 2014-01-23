@@ -104,6 +104,32 @@ void LEDON(uint8_t x) {
 }
 
 /**
+ * @brief   Toggle a LED.
+ *
+ * @param[in] x        Number of LED to toggled.
+ *
+ * @notapi
+ */
+void ToggleLED(uint8_t x) {
+  switch (x) {
+  case 1:
+    palTogglePad(GPIO2, GPIO2_LD6);
+     break;
+ case 2:
+    palTogglePad(GPIO1, GPIO1_LD7);
+    break;
+  case 3:
+    palTogglePad(GPIO5, GPIO5_LD8);
+    break;
+  case 4:
+    palTogglePad(GPIO5, GPIO5_LD9);
+    break;
+  default:
+    break;
+  }
+}
+
+/**
  * @brief   Use four leds to show a number in binary format.
  *
  * @param[in] mum       Number to be shown.
