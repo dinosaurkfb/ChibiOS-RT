@@ -182,13 +182,13 @@ void ledSingleBlinkBin(uint32_t num, uint32_t interval) {
  */
 void ledOperate(void)
 {
-  ledDoubleBlinkBin(0x1, 50);
-  msDelay(100);
-  ledDoubleBlinkBin(0x3, 50);
-  msDelay(100);
-  ledDoubleBlinkBin(0x7, 50);
-  msDelay(100);
-  ledDoubleBlinkBin(0xF, 50);
+  _ledShowBin(0x1);
+  msDelay(80);
+  _ledShowBin(0x3);
+  msDelay(80);
+  _ledShowBin(0x7);
+  msDelay(80);
+  ledDoubleBlinkBin(0xF, 40);
 }
 
 /*
