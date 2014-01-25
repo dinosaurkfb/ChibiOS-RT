@@ -28,6 +28,17 @@
 /*===========================================================================*/
 
 /*
+ * SPI configuration (1MHz, CPHA=0, CPOL=0).
+ */
+static SPIConfig spicfg = {
+  NULL,
+  LPC_GPIO0,
+  16,
+  SPCR_MSTR,
+  0x48 
+};
+
+/*
  * Application entry point.
  */
 int main(void) {
@@ -41,6 +52,8 @@ int main(void) {
    */
   halInit();
   chSysInit();
+
+  spiStart(&SPID1, &spicfg);
 
   /*
    * Test procedure.
@@ -70,10 +83,15 @@ int main(void) {
   /*
    * Normal main() thread activity, nothing in this test.
    */
-  uint32_t s = 0;
+//  uint32_t s = 0;
   while (TRUE) {
     chThdSleepMilliseconds(1000);
-    LOG_PRINT("*** Alive %u seconds.\n", ++s);
+//    LOG_PRINT("*** Alive %u seconds.\n", ++s);
+
+	spiSelect(&SPID1);
+    spiPolledExchange(&SPID1, 0x07);    /* Polled method.       */
+    spiUnselect(&SPID1);
+
   }
   return 0;
 }

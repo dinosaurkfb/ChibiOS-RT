@@ -67,3 +67,9 @@
 #define LPC17xx_RTC_IS_CALENDAR             TRUE
 #define LPC17xx_RTC_USE_ALARM               TRUE
 #define LPC17xx_RTC_IRQ_PRIORITY            0
+
+
+/*
+ * SPI driver system settings.
+ */
+#define LPC17xx_SPI_USE						TRUE
