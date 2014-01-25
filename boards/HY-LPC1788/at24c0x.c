@@ -16,17 +16,17 @@ void EEPROMInit(I2CDriver *i2cp) {
   i2cStart(i2cp, NULL);
 }
 
-int at24c0x_write_byte(uint8_t addr, uint8_t byte) {
+int at24c0x_write_byte(I2CDriver *i2cp, uint8_t addr, uint8_t byte) {
   uint8_t buf[2] = {addr, byte};
-  int ret = Locked_I2C_Request(dev_addr, buf, 2, I2C_B_WRITE, I2C_B_STOP1, 2, I2C_B_NEEDACK);
+  int ret = Locked_I2C_Request(i2cp, dev_addr, buf, 2, I2C_B_WRITE, I2C_B_STOP1, 2, I2C_B_NEEDACK);
   return ret;
 }
 
-int at24c0x_cur_read(uint8_t *rxbuf) {
+int at24c0x_cur_read(I2CDriver *i2cp, uint8_t *rxbuf) {
   int32_t i, ret = 0;
 
   for (i = 5; i > 0; i--) {
-    ret = Locked_I2C_Request(dev_addr, rxbuf, 1, I2C_B_READ, I2C_B_STOP1, 2, I2C_B_NEEDACK);
+    ret = Locked_I2C_Request(i2cp, dev_addr, rxbuf, 1, I2C_B_READ, I2C_B_STOP1, 2, I2C_B_NEEDACK);
     if (ret > 0) {
       break;
     }
@@ -35,14 +35,14 @@ int at24c0x_cur_read(uint8_t *rxbuf) {
   return ret;
 }
 
-int at24c0x_random_read(uint8_t addr, uint8_t *rxbuf) {
+int at24c0x_random_read(I2CDriver *i2cp, uint8_t addr, uint8_t *rxbuf) {
   int32_t i, ret = 0;
   /* Write data word address first */
-  ret = Locked_I2C_Request(dev_addr, &addr, 1, I2C_B_WRITE, I2C_B_STOP1, 2, I2C_B_NEEDACK);
+  ret = Locked_I2C_Request(i2cp, dev_addr, &addr, 1, I2C_B_WRITE, I2C_B_STOP1, 2, I2C_B_NEEDACK);
   if (ret > 0) {
     /* Then start reading data */
     for (i = 5; i > 0; i--) {
-      ret = Locked_I2C_Request(dev_addr, rxbuf, 1, I2C_B_READ, I2C_B_STOP1, 2, I2C_B_NEEDACK);
+      ret = Locked_I2C_Request(i2cp, dev_addr, rxbuf, 1, I2C_B_READ, I2C_B_STOP1, 2, I2C_B_NEEDACK);
       if (ret > 0) {
 	return ret;
       }

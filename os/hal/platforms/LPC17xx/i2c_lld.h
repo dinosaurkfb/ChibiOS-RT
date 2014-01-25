@@ -149,6 +149,19 @@ typedef uint32_t i2cflags_t;
 typedef struct {
 } I2CConfig;
 
+typedef struct {
+	int stat;//0=idle 1=wait for i2c stop,2=wait for i2c start ok 3=normal
+	int len;
+	int bRead;
+	int bStop;
+	int rwBytes;
+	int err;
+	int retry_start;
+	int retry_run;
+	int needAck;
+	uint8_t devAddr;
+	uint8_t *buf;
+} I2CReg;
 
 /**
  * @brief   Type of a structure representing an I2C driver.
@@ -189,24 +202,12 @@ struct I2CDriver {
   I2C_DRIVER_EXT_FIELDS
 #endif
   /* End of the mandatory fields.*/
+  I2CReg reg;
+  BinarySemaphore done;
+  VirtualTimer vt;
 
   /* Pointer to the I2C registers block.*/                                \
   LPC_I2C_TypeDef        *i2c;
-};
-
-struct i2c_reg
-{
-	int stat;//0=idle 1=wait for i2c stop,2=wait for i2c start ok 3=normal
-	int len;
-	int bRead;
-	int bStop;
-	int rwBytes;
-	int err;
-	int retry_start;
-	int retry_run;
-	int needAck;
-	uint8_t devAddr;
-	uint8_t *buf;
 };
 
 /*===========================================================================*/
@@ -252,7 +253,7 @@ extern "C" {
                                        uint8_t *rxbuf, size_t rxbytes,
                                        systime_t timeout);
 
-  int Locked_I2C_Request(uint8_t devAddr, uint8_t *buf, int len, int bRead, int bStop, int retry, int needAck);
+  int Locked_I2C_Request(I2CDriver *i2cp, uint8_t devAddr, uint8_t *buf, int len, int bRead, int bStop, int retry, int needAck);
 #ifdef DEBUG_I2C
   void I2C_Dump(void);
 #endif

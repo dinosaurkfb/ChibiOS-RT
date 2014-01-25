@@ -74,8 +74,8 @@
 #endif
 
 //200 * Fpclk/1000000 => 2 * Fpclk/10000
-#define ResetI2CTimer() {chVTResetI(&s_vt);	\
-    chVTSetI(&s_vt, US2ST(I2C_RETRY_INTERVAL), i2c_tm_cb, NULL);}
+#define ResetI2CTimer() {chVTResetI(&(i2cp->vt));	\
+    chVTSetI(&(i2cp->vt), US2ST(I2C_RETRY_INTERVAL), i2c_tm_cb, (void *)i2cp);}
 
 //#define EnableI2CTimer() gptStopTimer(gptp)          //允许I2C超时定时器
 //#define DisableI2CTimer() gptStopTimer(s_gptp)       //禁止I2C超时定时器
@@ -108,16 +108,7 @@ I2CDriver I2CD2;
 /*===========================================================================*/
 /* Driver local variables and types.                                         */
 /*===========================================================================*/
-static volatile struct i2c_reg s_reg;
 static void i2c_tm_cb(void *arg);
-
-static VirtualTimer s_vt;
-static I2CDriver *s_i2cp = NULL; 
-
-#ifdef _TOS_
-static sema_t s_lock;
-#endif
-static BinarySemaphore s_done;
 
 /*===========================================================================*/
 /* Driver local functions.                                                   */
@@ -190,62 +181,62 @@ static void dummy(void *arg) {
   (void)arg;
 }
 
-static void StartI2C(void)
+static void StartI2C(I2CDriver *i2cp)
 {
-  s_reg.rwBytes = 0;//读或写的字节数
-  s_reg.err = 0;
+  i2cp->reg.rwBytes = 0;//读或写的字节数
+  i2cp->reg.err = 0;
 
   // start i2c
-  s_reg.stat = I2C_STAT_WAIT_START;
-  s_i2cp->i2c->CONCLR = I2CF_EN | I2CF_STA | I2CF_SI | I2CF_AA;       
-  s_i2cp->i2c->CONSET = I2CF_EN | I2CF_STA; //bit6=1:使能I2C功能   bit5=1:主发送模式
+  i2cp->reg.stat = I2C_STAT_WAIT_START;
+  i2cp->i2c->CONCLR = I2CF_EN | I2CF_STA | I2CF_SI | I2CF_AA;       
+  i2cp->i2c->CONSET = I2CF_EN | I2CF_STA; //bit6=1:使能I2C功能   bit5=1:主发送模式
   EnableI2CInt();  // 允许I2c中断
   AddLog(EVT_START, 0);
 }
 
-static void TryStartI2C(void)
+static void TryStartI2C(I2CDriver *i2cp)
 {
-  if( (s_i2cp->i2c->CONSET & I2CF_STO) ) {//（主）使I2C接口发送停止条件（从）从错误状态中恢复
-    s_reg.stat = I2C_STAT_WAIT_STOP;
+  if( (i2cp->i2c->CONSET & I2CF_STO) ) {//（主）使I2C接口发送停止条件（从）从错误状态中恢复
+    i2cp->reg.stat = I2C_STAT_WAIT_STOP;
     AddLog(EVT_WAIT_STOP, 0);
   }
   else
-    StartI2C();
+    StartI2C(i2cp);
 }
 
-static void TryReStartI2C(void)
+static void TryReStartI2C(I2CDriver *i2cp)
 {
   AddLog(EVT_STOP, 0);
-  s_i2cp->i2c->CONCLR = I2CF_STA | I2CF_SI;
-  s_i2cp->i2c->CONSET = I2CF_STO;
+  i2cp->i2c->CONCLR = I2CF_STA | I2CF_SI;
+  i2cp->i2c->CONSET = I2CF_STO;
   /* Transmit a stop bit to recover*/
-  if( (s_i2cp->i2c->CONSET & I2CF_STO) ) { 
+  if( (i2cp->i2c->CONSET & I2CF_STO) ) { 
     /* Recover failed */
     DisableI2CInt(); // 禁止I2c中断
-    s_reg.stat = I2C_STAT_WAIT_STOP;
+    i2cp->reg.stat = I2C_STAT_WAIT_STOP;
     AddLog(EVT_WAIT_STOP, 0);
   }
   else
     /* Recovered, start again */
-    StartI2C();
+    StartI2C(i2cp);
 }
 
- static void FinishI2C(int err)
+static void FinishI2C(I2CDriver *i2cp, int err)
 {
   //  s_done = 1;
-  chBSemSignalI(&s_done);
+  chBSemSignalI(&(i2cp->done));
   AddLog(EVT_FINISH_BEGIN, 0);
-  s_reg.stat = 0;
-  s_reg.err = err;
+  i2cp->reg.stat = 0;
+  i2cp->reg.err = err;
 
   //DisableI2CTimer();  // 禁止I2C超时定时器
-  chVTResetI(&s_vt);
+  chVTResetI(&(i2cp->vt));
   DisableI2CInt(); // 禁止I2c中断
 
-  if(err<0 || s_reg.bStop) {
+  if(err<0 || i2cp->reg.bStop) {
     AddLog(EVT_STOP, 0);
-    s_i2cp->i2c->CONCLR = I2CF_STA | I2CF_SI | I2CF_AA;
-    s_i2cp->i2c->CONSET = I2CF_STO;
+    i2cp->i2c->CONCLR = I2CF_STA | I2CF_SI | I2CF_AA;
+    i2cp->i2c->CONSET = I2CF_STO;
   }
 
   AddLog(EVT_FINISH, 0);
@@ -255,40 +246,41 @@ static void TryReStartI2C(void)
  * I2C timer callback.
  */
 static void i2c_tm_cb(void *arg) {
-  (void)arg;
+  I2CDriver *i2cp =(I2CDriver *)arg;
   chSysLockFromIsr();
-  //  LEDON(2);
+  LEDON(2);
   ResetI2CTimer();
   AddLog(EVT_TIME_ISR, 0);
 
-  switch(s_reg.stat) {
+  switch(i2cp->reg.stat) {
   case I2C_STAT_WAIT_STOP:
     AddLog(EVT_TIMEOUT1, 0);
-    if( s_i2cp->i2c->CONSET & I2CF_STO ) 
-      FinishI2C(E_I2C_TIMEOUT2);
+    if( i2cp->i2c->CONSET & I2CF_STO ) 
+      FinishI2C(i2cp, E_I2C_TIMEOUT2);
     else 
-      StartI2C();
+      StartI2C(i2cp);
     break;
   case I2C_STAT_WAIT_START:
     AddLog(EVT_TIMEOUT2, 0);
-    if(s_reg.retry_start > 0) {
-      s_reg.retry_start--;
-      TryReStartI2C();
+    if(i2cp->reg.retry_start > 0) {
+      i2cp->reg.retry_start--;
+      TryReStartI2C(i2cp);
     }
     else 
-      FinishI2C(E_I2C_TIMEOUT);
+      FinishI2C(i2cp, E_I2C_TIMEOUT);
     break;
   case I2C_STAT_RUN:
     AddLog(EVT_TIMEOUT3, 0);
-    if(s_reg.retry_start > 0) {
-      s_reg.retry_start--;
-      TryReStartI2C();
+    if(i2cp->reg.retry_start > 0) {
+      i2cp->reg.retry_start--;
+      TryReStartI2C(i2cp);
     }
     else 
-      FinishI2C(E_I2C_TIMEOUT1);
+      FinishI2C(i2cp, E_I2C_TIMEOUT1);
     break;
   }
 
+  LEDON(3);
   chSysUnlockFromIsr();
 }
 
@@ -296,7 +288,7 @@ static void i2c_tm_cb(void *arg) {
 //       bRead=1, 读，=0, 写
 //       bStop=1, 完成后停止，=0, 完成后不停止
 // 返回>=0, 读/写的字节数，<0, 错误
-int Locked_I2C_Request(uint8_t devAddr, uint8_t *buf, int len, int bRead, int bStop, int retry, int needAck /* = 1 */)
+int Locked_I2C_Request(I2CDriver *i2cp, uint8_t devAddr, uint8_t *buf, int len, int bRead, int bStop, int retry, int needAck /* = 1 */)
 {
   //  disable_interrupt();
   chSysLock();
@@ -305,34 +297,34 @@ int Locked_I2C_Request(uint8_t devAddr, uint8_t *buf, int len, int bRead, int bS
 #endif
 
   volatile uint32_t i = 0;
-  s_reg.devAddr = devAddr;
-  s_reg.buf = buf;
-  s_reg.len = len;
-  s_reg.bRead = bRead;
-  s_reg.bStop = bStop;
-  s_reg.retry_start = START_RETRY_NUM;
-  s_reg.retry_run = retry;
-  s_reg.needAck = needAck;
+  i2cp->reg.devAddr = devAddr;
+  i2cp->reg.buf = buf;
+  i2cp->reg.len = len;
+  i2cp->reg.bRead = bRead;
+  i2cp->reg.bStop = bStop;
+  i2cp->reg.retry_start = START_RETRY_NUM;
+  i2cp->reg.retry_run = retry;
+  i2cp->reg.needAck = needAck;
   //s_done = 0; 
-  chBSemResetI(&s_done, TRUE);
+  chBSemResetI(&(i2cp->done), TRUE);
 
   //启动i2c超时定时器
   //ResetI2CTimer();
-  if (chVTIsArmedI(&s_vt))
-    chVTResetI(&s_vt);
-  chVTSetI(&s_vt, US2ST(I2C_RETRY_INTERVAL), i2c_tm_cb, NULL);
+  if (chVTIsArmedI(&(i2cp->vt)))
+    chVTResetI(&(i2cp->vt));
+  chVTSetI(&(i2cp->vt), US2ST(I2C_RETRY_INTERVAL), i2c_tm_cb, (void *)i2cp);
   //允许i2c超时定时器
   //EnableI2CTimer();
 
-  TryStartI2C();
+  TryStartI2C(i2cp);
   chSysUnlock();
   //  enable_interrupt();
 
   //wait_flag(&s_done);
-  int ret = chBSemWaitTimeoutS(&s_done, MS2ST(100));
+  int ret = chBSemWaitTimeoutS(&(i2cp->done), MS2ST(100));
   AddLog(EVT_RET, ret);
 
-  ret = (s_reg.err<0) ? s_reg.err : s_reg.rwBytes;
+  ret = (i2cp->reg.err<0) ? i2cp->reg.err : i2cp->reg.rwBytes;
   AddLog(EVT_RET, ret);
   return ret;
 }
@@ -349,14 +341,14 @@ int Locked_I2C_Request(uint8_t devAddr, uint8_t *buf, int len, int bRead, int bS
  * @param[in] u         pointer to an I2C I/O block
  * @param[in] sdp       communication channel associated to the I2C
  */
-static void serve_interrupt(uint8_t n) {
-  (void)n;
+static void serve_interrupt(I2CDriver *i2cp) {
   chSysLockFromIsr();
   int32_t err = 0;
   static uint32_t cnt = 0;
   ResetI2CTimer();
 
-  uint8_t stat = s_i2cp->i2c->STAT; 
+  LEDON(1);
+  uint8_t stat = i2cp->i2c->STAT; 
   AddLog(EVT_IIC_ISR, stat);
 
   switch(stat) {	
@@ -366,18 +358,16 @@ static void serve_interrupt(uint8_t n) {
 
   case 0x08: //发送了START
   case 0x10: //发送了ReSTART
-    LEDON(4);
-    s_reg.stat = I2C_STAT_RUN;
-    AddLog(EVT_DATA, (s_reg.devAddr<<1) | s_reg.bRead);
+    i2cp->reg.stat = I2C_STAT_RUN;
+    AddLog(EVT_DATA, (i2cp->reg.devAddr<<1) | i2cp->reg.bRead);
     /* send devAddr + R/W */
-    s_i2cp->i2c->DAT = (s_reg.devAddr<<1) | s_reg.bRead;
-    s_i2cp->i2c->CONCLR = I2CF_STA | I2CF_SI;
+    i2cp->i2c->DAT = (i2cp->reg.devAddr<<1) | i2cp->reg.bRead;
+    i2cp->i2c->CONCLR = I2CF_STA | I2CF_SI;
     break;
 
   case 0x20: // 发送addr+W, 未收到ACK
   case 0x30: // 发送数据，未收到ACK
-    LEDON(3);
-    if(s_reg.needAck) {
+    if(i2cp->reg.needAck) {
       // 缺省处理. 
       err = E_I2C_NACK;
       break;
@@ -385,11 +375,10 @@ static void serve_interrupt(uint8_t n) {
 
   case 0x18: // 发送addr+W, 收到ACK
   case 0x28: // 发送数据，收到ACK
-    LEDON(1);
-    if(s_reg.rwBytes<s_reg.len) {
-      AddLog(EVT_DATA, s_reg.buf[s_reg.rwBytes]);
-      s_i2cp->i2c->DAT = s_reg.buf[s_reg.rwBytes++];
-      s_i2cp->i2c->CONCLR = I2CF_STA | I2CF_SI;
+    if(i2cp->reg.rwBytes<i2cp->reg.len) {
+      AddLog(EVT_DATA, i2cp->reg.buf[i2cp->reg.rwBytes]);
+      i2cp->i2c->DAT = i2cp->reg.buf[i2cp->reg.rwBytes++];
+      i2cp->i2c->CONCLR = I2CF_STA | I2CF_SI;
     }
     else
       err = 1; // 表示全部发送完毕
@@ -400,26 +389,26 @@ static void serve_interrupt(uint8_t n) {
     break;
 
   case 0x48: // 发送了addr+R, 未收到ACK
-    if(s_reg.needAck) {
+    if(i2cp->reg.needAck) {
       err = E_I2C_NACK;
       break;
     }
 
   case 0x40: //发送了addr+R, 收到ACK
-    if(s_reg.len > 1) {
+    if(i2cp->reg.len > 1) {
       /* Acknowledge the next received byte */
-      s_i2cp->i2c->CONSET = I2CF_AA;
+      i2cp->i2c->CONSET = I2CF_AA;
     }
-    s_i2cp->i2c->CONCLR = I2CF_STA | I2CF_SI;
+    i2cp->i2c->CONCLR = I2CF_STA | I2CF_SI;
     break;
 
   case 0x50: // 收到数据，应答了ACK
-    s_reg.buf[s_reg.rwBytes++] = (uint8_t)(s_i2cp->i2c->DAT);
-    s_i2cp->i2c->CONCLR = (s_reg.rwBytes == s_reg.len-1) ? (I2CF_STA|I2CF_SI|I2CF_AA) : (I2CF_STA|I2CF_SI);
+    i2cp->reg.buf[i2cp->reg.rwBytes++] = (uint8_t)(i2cp->i2c->DAT);
+    i2cp->i2c->CONCLR = (i2cp->reg.rwBytes == i2cp->reg.len-1) ? (I2CF_STA|I2CF_SI|I2CF_AA) : (I2CF_STA|I2CF_SI);
     break;
 
   case 0x58: // 收到数据，未应答ACK
-    s_reg.buf[s_reg.rwBytes++] = (uint8_t)(s_i2cp->i2c->DAT);
+    i2cp->reg.buf[i2cp->reg.rwBytes++] = (uint8_t)(i2cp->i2c->DAT);
     err = 1;  // 完成
     break;
 
@@ -427,15 +416,15 @@ static void serve_interrupt(uint8_t n) {
     err = E_I2C_STAT;
   }
 
-  if(err<0 && s_reg.retry_run>0) {
-    AddLog(EVT_DATA, s_reg.retry_run);
-    s_reg.retry_run--;
-    s_reg.retry_start = START_RETRY_NUM;
-    TryReStartI2C();
+  if(err<0 && i2cp->reg.retry_run>0) {
+    AddLog(EVT_DATA, i2cp->reg.retry_run);
+    i2cp->reg.retry_run--;
+    i2cp->reg.retry_start = START_RETRY_NUM;
+    TryReStartI2C(i2cp);
   }
   else 
     if(err) {
-      FinishI2C(err);
+      FinishI2C(i2cp, err);
     }
   chSysUnlockFromIsr();
 }
@@ -450,7 +439,7 @@ CH_IRQ_HANDLER(Vector68) {
 
   CH_IRQ_PROLOGUE();
 
-  serve_interrupt(0);
+  serve_interrupt(&I2CD0);
 
   CH_IRQ_EPILOGUE();
 }
@@ -466,7 +455,7 @@ CH_IRQ_HANDLER(Vector6C) {
 
   CH_IRQ_PROLOGUE();
 
-  serve_interrupt(1);
+  serve_interrupt(&I2CD1);
 
   CH_IRQ_EPILOGUE();
 }
@@ -482,7 +471,7 @@ CH_IRQ_HANDLER(Vector70) {
 
   CH_IRQ_PROLOGUE();
 
-  serve_interrupt(2);
+  serve_interrupt(&I2CD2);
 
   CH_IRQ_EPILOGUE();
 }
@@ -522,8 +511,7 @@ void i2c_lld_init(void) {
  * @notapi
  */
 void i2c_lld_start(I2CDriver *i2cp) {
-  s_i2cp = i2cp;
-  chBSemInit(&s_done, FALSE);
+  chBSemInit(&(i2cp->done), FALSE);
 
   if (i2cp->state == I2C_STOP) {
     /* Enables the peripheral.*/
@@ -644,7 +632,7 @@ msg_t i2c_lld_master_receive_timeout(I2CDriver *i2cp, i2caddr_t addr,
   static VirtualTimer vt;
   chVTSetI(&vt, timeout, dummy, NULL);
   while (TRUE) {
-    ret = Locked_I2C_Request(addr, rxbuf, rxbytes, 
+    ret = Locked_I2C_Request(i2cp, addr, rxbuf, rxbytes, 
 			     I2C_B_READ, I2C_B_STOP1,
 			     2, I2C_B_NEEDACK);
     if (ret > 0) {
@@ -688,10 +676,10 @@ msg_t i2c_lld_master_transmit_timeout(I2CDriver *i2cp, i2caddr_t addr,
 
   (void)i2cp;
   uint32_t retry = timeout / I2C_RETRY_INTERVAL;
-  int ret = Locked_I2C_Request(addr, txbuf, txbytes, I2C_B_WRITE, I2C_B_STOP0, retry, I2C_B_NEEDACK);
+  int ret = Locked_I2C_Request(i2cp, addr, txbuf, txbytes, I2C_B_WRITE, I2C_B_STOP0, retry, I2C_B_NEEDACK);
   if (ret == 1) {
     if (rxbytes > 0) {
-      ret = Locked_I2C_Request(addr, rxbuf, rxbytes, I2C_B_READ, I2C_B_STOP1, 0, I2C_B_NEEDACK);
+      ret = Locked_I2C_Request(i2cp, addr, rxbuf, rxbytes, I2C_B_READ, I2C_B_STOP1, 0, I2C_B_NEEDACK);
       if (ret > 0) {
 	return RDY_OK;
       }
