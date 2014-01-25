@@ -5,6 +5,7 @@ PLATFORMSRC = ${CHIBIOS}/os/hal/platforms/LPC17xx/hal_lld.c \
               ${CHIBIOS}/os/hal/platforms/LPC17xx/serial_lld.c \
               ${CHIBIOS}/os/hal/platforms/LPC17xx/ext_lld.c \
               ${CHIBIOS}/os/hal/platforms/LPC17xx/ext_lld_isr.c \
+              ${CHIBIOS}/os/hal/platforms/LPC17xx/i2c_lld.c \
               ${CHIBIOS}/os/hal/platforms/LPC17xx/lpc177x_8x_gpio.c \
               ${CHIBIOS}/os/hal/platforms/LPC17xx/pinsel_lld.c \
               ${CHIBIOS}/os/hal/platforms/LPC17xx/clkpwr_lld.c \
