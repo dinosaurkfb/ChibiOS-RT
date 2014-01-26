@@ -140,17 +140,17 @@ int main(void) {
   /**
    * Prepares the accelerometer
    */
-  status = at24c0x_write_byte(&I2CD1, 0x01, 55);
-  LOG_PRINT("*** at24c0x_write_byte return: %d\n", status);
-  I2C_Dump();
-  /* status = at24c0x_write_byte(0x02, 0x59); */
+  /* status = at24c0x_write_byte(&I2CD1, 0x01, 55); */
   /* LOG_PRINT("*** at24c0x_write_byte return: %d\n", status); */
   /* I2C_Dump(); */
+  status = at24c0x_write_byte(&I2CD1, 0x02, 59);
+  LOG_PRINT("*** at24c0x_write_byte return: %d\n", status);
+  I2C_Dump();
   uint8_t rbyte = 0;
-  /* status = at24c0x_random_read(&I2CD1, 0x01, &rbyte); */
-  /* LOG_PRINT("*** at24c0x_cur_read return: %d\n", status); */
-  /* LOG_PRINT("*** at24c0x_cur_read rbyte: %d\n", rbyte); */
-  /* I2C_Dump(); */
+  status = at24c0x_random_read(&I2CD1, 0x02, &rbyte);
+  LOG_PRINT("*** at24c0x_random_read return: %d\n", status);
+  LOG_PRINT("*** at24c0x_random_read rbyte: %d\n", rbyte);
+  I2C_Dump();
   status = at24c0x_cur_read(&I2CD1, &rbyte);
   LOG_PRINT("*** at24c0x_cur_read return: %d\n", status);
   LOG_PRINT("*** at24c0x_cur_read rbyte: %d\n", rbyte);

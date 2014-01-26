@@ -163,8 +163,8 @@ static void dummy(void *arg) {
 
 static void StartI2C(I2CDriver *i2cp)
 {
-  i2cp->reg.rwBytes = 0;//读或写的字节数
-  i2cp->reg.err = 0;
+  i2cp->rwBytes = 0;//读或写的字节数
+  i2cp->errors = I2CD_NO_ERROR;
 
   // start i2c
   i2cp->reg.stat = I2C_STAT_WAIT_START;
@@ -207,7 +207,7 @@ static void FinishI2C(I2CDriver *i2cp, int err)
   chBSemSignalI(&(i2cp->done));
   AddLog(EVT_FINISH_BEGIN, 0);
   i2cp->reg.stat = 0;
-  i2cp->reg.err = err;
+  i2cp->errors = err;
 
   //DisableI2CTimer();  // 禁止I2C超时定时器
   chVTResetI(&(i2cp->vt));
@@ -228,7 +228,6 @@ static void FinishI2C(I2CDriver *i2cp, int err)
 static void i2c_tm_cb(void *arg) {
   I2CDriver *i2cp =(I2CDriver *)arg;
   chSysLockFromIsr();
-  LEDON(2);
   ResetI2CTimer();
   AddLog(EVT_TIME_ISR, 0);
 
@@ -267,7 +266,8 @@ static void i2c_tm_cb(void *arg) {
 // 输入: devAddr: 低7位是设备地址
 //       bRead=1, 读，=0, 写
 //       bStop=1, 完成后停止，=0, 完成后不停止
-// 返回>=0, 读/写的字节数，<0, 错误
+// 返回=0， 成功，>0, 错误码
+// 成功时，读/写的字节数可以通过访问 i2cp->rwBytes 读取
 int Locked_I2C_Request(I2CDriver *i2cp, uint8_t devAddr, uint8_t *buf, int len, int bRead, int bStop, int retry, int needAck /* = 1 */)
 {
   //  disable_interrupt();
@@ -278,7 +278,11 @@ int Locked_I2C_Request(I2CDriver *i2cp, uint8_t devAddr, uint8_t *buf, int len, 
 
   volatile uint32_t i = 0;
   i2cp->reg.devAddr = devAddr;
-  i2cp->reg.buf = buf;
+  if (bRead == I2C_B_READ) {
+    i2cp->reg.rxbuf = buf;
+  } else {
+    i2cp->reg.txbuf = buf;
+  }
   i2cp->reg.len = len;
   i2cp->reg.bRead = bRead;
   i2cp->reg.bStop = bStop;
@@ -304,7 +308,7 @@ int Locked_I2C_Request(I2CDriver *i2cp, uint8_t devAddr, uint8_t *buf, int len, 
   int ret = chBSemWaitTimeoutS(&(i2cp->done), MS2ST(100));
   AddLog(EVT_RET, ret);
 
-  ret = (i2cp->reg.err<0) ? i2cp->reg.err : i2cp->reg.rwBytes;
+  ret = (i2cp->errors != I2CD_NO_ERROR) ? i2cp->errors : I2CD_NO_ERROR;
   AddLog(EVT_RET, ret);
   return ret;
 }
@@ -324,16 +328,14 @@ int Locked_I2C_Request(I2CDriver *i2cp, uint8_t devAddr, uint8_t *buf, int len, 
 static void serve_interrupt(I2CDriver *i2cp) {
   chSysLockFromIsr();
   int32_t err = 0;
-  static uint32_t cnt = 0;
   ResetI2CTimer();
 
-  LEDON(1);
   uint8_t stat = i2cp->i2c->STAT; 
   AddLog(EVT_IIC_ISR, stat);
 
   switch(stat) {	
   case 0x00:
-    err = E_I2C_BUS;
+    err = I2CD_BUS_ERROR;
     break;
 
   case 0x08: //发送了START
@@ -349,28 +351,29 @@ static void serve_interrupt(I2CDriver *i2cp) {
   case 0x30: // 发送数据，未收到ACK
     if(i2cp->reg.needAck) {
       // 缺省处理. 
-      err = E_I2C_NACK;
+      err = I2CD_ACK_FAILURE;
       break;
     }
 
   case 0x18: // 发送addr+W, 收到ACK
   case 0x28: // 发送数据，收到ACK
-    if(i2cp->reg.rwBytes<i2cp->reg.len) {
-      AddLog(EVT_DATA, i2cp->reg.buf[i2cp->reg.rwBytes]);
-      i2cp->i2c->DAT = i2cp->reg.buf[i2cp->reg.rwBytes++];
+    if(i2cp->rwBytes < i2cp->reg.len) {
+      AddLog(EVT_DATA, i2cp->reg.txbuf[i2cp->rwBytes]);
+      i2cp->i2c->DAT = i2cp->reg.txbuf[i2cp->rwBytes++];
       i2cp->i2c->CONCLR = I2CF_STA | I2CF_SI;
     }
     else
-      err = 1; // 表示全部发送完毕
+      // 表示全部发送完毕
+      FinishI2C(i2cp, I2CD_NO_ERROR);
     break;
 
   case 0x38: //arbitration lost in SLA+R/W or data bytes
-    err = E_I2C_ARB;
+    err = I2CD_ARBITRATION_LOST;
     break;
 
   case 0x48: // 发送了addr+R, 未收到ACK
     if(i2cp->reg.needAck) {
-      err = E_I2C_NACK;
+      err = I2CD_ACK_FAILURE;
       break;
     }
 
@@ -383,29 +386,30 @@ static void serve_interrupt(I2CDriver *i2cp) {
     break;
 
   case 0x50: // 收到数据，应答了ACK
-    i2cp->reg.buf[i2cp->reg.rwBytes++] = (uint8_t)(i2cp->i2c->DAT);
-    i2cp->i2c->CONCLR = (i2cp->reg.rwBytes == i2cp->reg.len-1) ? (I2CF_STA|I2CF_SI|I2CF_AA) : (I2CF_STA|I2CF_SI);
+    i2cp->reg.rxbuf[i2cp->rwBytes++] = (uint8_t)(i2cp->i2c->DAT);
+    i2cp->i2c->CONCLR = (i2cp->rwBytes == i2cp->reg.len-1) ? (I2CF_STA|I2CF_SI|I2CF_AA) : (I2CF_STA|I2CF_SI);
     break;
 
   case 0x58: // 收到数据，未应答ACK
-    i2cp->reg.buf[i2cp->reg.rwBytes++] = (uint8_t)(i2cp->i2c->DAT);
-    err = 1;  // 完成
+    i2cp->reg.rxbuf[i2cp->rwBytes++] = (uint8_t)(i2cp->i2c->DAT);
+    // 完成
+    FinishI2C(i2cp, I2CD_NO_ERROR);
     break;
 
   default:
     err = E_I2C_STAT;
   }
 
-  if(err<0 && i2cp->reg.retry_run>0) {
-    AddLog(EVT_DATA, i2cp->reg.retry_run);
-    i2cp->reg.retry_run--;
-    i2cp->reg.retry_start = START_RETRY_NUM;
-    TryReStartI2C(i2cp);
-  }
-  else 
-    if(err) {
+  if (err != I2CD_NO_ERROR) {
+    if (i2cp->reg.retry_run>0) {
+      AddLog(EVT_DATA, i2cp->reg.retry_run);
+      i2cp->reg.retry_run--;
+      i2cp->reg.retry_start = START_RETRY_NUM;
+      TryReStartI2C(i2cp);
+    } else {
       FinishI2C(i2cp, err);
     }
+  }
   chSysUnlockFromIsr();
 }
 
@@ -509,7 +513,7 @@ void i2c_lld_start(I2CDriver *i2cp) {
 
 #if LPC17xx_I2C_USE_I2C1
     if (&I2CD1 == i2cp) {
-      LPC_SC->PCONP |=(1<<19);	                       //i2c1使能
+      LPC_SC->PCONP |=(1<<19);
 #ifdef LPC177x_8x
       /* set PIO2.14 and PIO2.15 to I2C1 SDA and SCL */
       PINSEL_ConfigPin(2, 14, 0b010);
@@ -579,8 +583,8 @@ void i2c_lld_stop(I2CDriver *i2cp) {
 
 /**
  * @brief   Receives data via the I2C bus as master.
- * @details Number of receiving bytes must be more than 1 on STM32F1x. This is
- *          hardware restriction.
+ * @details 
+ *          
  *
  * @param[in] i2cp      pointer to the @p I2CDriver object
  * @param[in] addr      slave device address
@@ -604,19 +608,43 @@ msg_t i2c_lld_master_receive_timeout(I2CDriver *i2cp, i2caddr_t addr,
                                      uint8_t *rxbuf, size_t rxbytes,
                                      systime_t timeout) {
 
-  (void)i2cp;
-  int32_t ret = 0;
   static VirtualTimer vt;
   chVTSetI(&vt, timeout, dummy, NULL);
-  while (TRUE) {
-    ret = Locked_I2C_Request(i2cp, addr, rxbuf, rxbytes, 
-			     I2C_B_READ, I2C_B_STOP1,
-			     2, I2C_B_NEEDACK);
-    if (ret > 0) {
+
+  /* These setting will not be changed until return. */
+  i2cp->reg.devAddr = addr;
+  i2cp->reg.rxbuf = rxbuf;
+  i2cp->reg.len = rxbytes;
+  i2cp->reg.bRead = I2C_B_READ;
+  i2cp->reg.bStop = I2C_B_STOP1;
+  i2cp->reg.needAck = I2C_B_NEEDACK;
+
+  while (1) {
+    /* Reset all retry settings */
+    i2cp->reg.retry_start = START_RETRY_NUM;
+    i2cp->reg.retry_run = 2;
+
+#ifdef DEBUG_I2C
+    s_log_idx=0;
+#endif
+    chBSemResetI(&(i2cp->done), TRUE);
+
+    if (chVTIsArmedI(&(i2cp->vt)))
+      chVTResetI(&(i2cp->vt));
+    chVTSetI(&(i2cp->vt), US2ST(I2C_RETRY_INTERVAL), i2c_tm_cb, (void *)i2cp);
+
+    TryStartI2C(i2cp);
+
+    /* Wait I2C finish */
+    chBSemWaitS(&(i2cp->done));
+    if (i2cp->errors != I2CD_NO_ERROR) {
+      if (chVTIsArmedI(&vt)) {
+	AddLog(EVT_RET, i2cp->errors);
+	return RDY_TIMEOUT;
+      }
+    } else {
+      AddLog(EVT_RET, RDY_OK);
       return RDY_OK;
-    }
-    else {
-      return RDY_RESET;
     }
   }
 }
@@ -651,24 +679,57 @@ msg_t i2c_lld_master_transmit_timeout(I2CDriver *i2cp, i2caddr_t addr,
                                       uint8_t *rxbuf, size_t rxbytes,
                                       systime_t timeout) {
 
-  (void)i2cp;
-  uint32_t retry = timeout / I2C_RETRY_INTERVAL;
-  int ret = Locked_I2C_Request(i2cp, addr, txbuf, txbytes, I2C_B_WRITE, I2C_B_STOP0, retry, I2C_B_NEEDACK);
-  if (ret == 1) {
-    if (rxbytes > 0) {
-      ret = Locked_I2C_Request(i2cp, addr, rxbuf, rxbytes, I2C_B_READ, I2C_B_STOP1, 0, I2C_B_NEEDACK);
-      if (ret > 0) {
-	return RDY_OK;
+  static VirtualTimer vt;
+  chVTSetI(&vt, timeout, dummy, NULL);
+
+  /* These setting will not be changed until return. */
+  i2cp->reg.devAddr = addr;
+  i2cp->reg.txbuf = txbuf;
+  i2cp->reg.len = txbytes;
+  i2cp->reg.bRead = I2C_B_WRITE;
+  i2cp->reg.bStop = I2C_B_STOP1;
+  i2cp->reg.needAck = I2C_B_NEEDACK;
+#define PHASE_TX 1
+#define PHASE_RX 2
+  uint8_t phase = PHASE_TX;
+
+  while (1) {
+    /* Reset all retry settings */
+    i2cp->reg.retry_start = START_RETRY_NUM;
+    i2cp->reg.retry_run = 2;
+
+#ifdef DEBUG_I2C
+    s_log_idx=0;
+#endif
+    chBSemResetI(&(i2cp->done), TRUE);
+
+    if (chVTIsArmedI(&(i2cp->vt)))
+      chVTResetI(&(i2cp->vt));
+    chVTSetI(&(i2cp->vt), US2ST(I2C_RETRY_INTERVAL), i2c_tm_cb, (void *)i2cp);
+
+    TryStartI2C(i2cp);
+
+    /* Wait I2C finish */
+    chBSemWaitS(&(i2cp->done));
+    if (i2cp->errors != I2CD_NO_ERROR) {
+      if (chVTIsArmedI(&vt)) {
+	AddLog(EVT_RET, i2cp->errors);
+	return RDY_TIMEOUT;
       }
-      else {
-	return RDY_RESET;
+    } else {
+      /* Continue to receive from I2C bus */
+      if (rxbytes != 0 && PHASE_TX == phase) {
+	i2cp->reg.rxbuf = rxbuf;
+	i2cp->reg.len = rxbytes;
+	i2cp->reg.bRead = I2C_B_READ;
+	phase = PHASE_RX;
+	LEDON(2);
+	continue;
       }
-    }
-    else {
+      AddLog(EVT_RET, RDY_OK);
       return RDY_OK;
     }
   }
-  return RDY_RESET;
 }
 
 #endif /* HAL_USE_I2C */

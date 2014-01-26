@@ -46,9 +46,6 @@
 
 
 //I2C
-#define E_I2C_BUS            1000
-#define E_I2C_NACK           1001
-#define E_I2C_ARB            1002
 #define E_I2C_STAT           1003
 #define E_I2C_TIMEOUT        1004
 #define E_I2C_TIMEOUT1       1005
@@ -155,17 +152,16 @@ typedef struct {
 } I2CConfig;
 
 typedef struct {
-	int stat;//0=idle 1=wait for i2c stop,2=wait for i2c start ok 3=normal
-	int len;
-	int bRead;
-	int bStop;
-	int rwBytes;
-	int err;
-	int retry_start;
-	int retry_run;
-	int needAck;
-	uint8_t devAddr;
-	uint8_t *buf;
+  int stat;//0=idle 1=wait for i2c stop,2=wait for i2c start ok 3=normal
+  size_t len;
+  uint8_t bRead;
+  uint8_t bStop;
+  uint8_t needAck;
+  uint8_t devAddr;
+  uint32_t retry_start;
+  uint32_t retry_run;
+  uint8_t *rxbuf;
+  const uint8_t *txbuf;
 } I2CReg;
 
 /**
@@ -210,6 +206,9 @@ struct I2CDriver {
   I2CReg reg;
   BinarySemaphore done;
   VirtualTimer vt;
+
+  /* Read or write bytes when succeed. */
+  size_t rwBytes;
   
   /* I2C offset, value can be 0, 1, 2 */
   i2c_offset_t offset;
