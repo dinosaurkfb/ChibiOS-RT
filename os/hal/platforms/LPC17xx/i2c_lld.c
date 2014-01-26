@@ -51,34 +51,14 @@
 #define I2C_STAT_RUN 3
 
 //重试间隔=200us
-#define I2C_RETRY_INTERVAL 300
+#define I2C_RETRY_INTERVAL 200
 
-#if LPC17xx_I2C_USE_I2C0
-#define EnableI2CInt() nvicEnableVector(I2C0_IRQn,			\
-					CORTEX_PRIORITY_MASK(LPC17xx_I2C0_IRQ_PRIORITY))
-#define DisableI2CInt() nvicDisableVector(I2C0_IRQn)
-#endif
-
-#if LPC17xx_I2C_USE_I2C1
-#define EnableI2CInt() NVIC_EnableIRQ(I2C1_IRQn)
-/* nvicEnableVector(I2C1_IRQn,						\ */
-/* 					CORTEX_PRIORITY_MASK(LPC17xx_I2C1_IRQ_PRIORITY)) */
-#define DisableI2CInt() NVIC_DisableIRQ(I2C1_IRQn)
-//#define DisableI2CInt() nvicDisableVector(I2C1_IRQn)
-#endif
-
-#if LPC17xx_I2C_USE_I2C2
-#define EnableI2CInt() nvicEnableVector(I2C2_IRQn,			\
-					CORTEX_PRIORITY_MASK(LPC17xx_I2C2_IRQ_PRIORITY))
-#define DisableI2CInt() nvicDisableVector(I2C2_IRQn)
-#endif
+#define EnableI2CInt() NVIC_EnableIRQ(I2C0_IRQn + i2cp->offset)
+#define DisableI2CInt() NVIC_DisableIRQ(I2C0_IRQn + i2cp->offset)
 
 //200 * Fpclk/1000000 => 2 * Fpclk/10000
 #define ResetI2CTimer() {chVTResetI(&(i2cp->vt));	\
     chVTSetI(&(i2cp->vt), US2ST(I2C_RETRY_INTERVAL), i2c_tm_cb, (void *)i2cp);}
-
-//#define EnableI2CTimer() gptStopTimer(gptp)          //允许I2C超时定时器
-//#define DisableI2CTimer() gptStopTimer(s_gptp)       //禁止I2C超时定时器
 
 /*===========================================================================*/
 /* Driver exported variables.                                                */
@@ -438,9 +418,7 @@ static void serve_interrupt(I2CDriver *i2cp) {
 CH_IRQ_HANDLER(Vector68) {
 
   CH_IRQ_PROLOGUE();
-
   serve_interrupt(&I2CD0);
-
   CH_IRQ_EPILOGUE();
 }
 #endif
@@ -454,9 +432,7 @@ CH_IRQ_HANDLER(Vector68) {
 CH_IRQ_HANDLER(Vector6C) {
 
   CH_IRQ_PROLOGUE();
-
   serve_interrupt(&I2CD1);
-
   CH_IRQ_EPILOGUE();
 }
 #endif
@@ -470,9 +446,7 @@ CH_IRQ_HANDLER(Vector6C) {
 CH_IRQ_HANDLER(Vector70) {
 
   CH_IRQ_PROLOGUE();
-
   serve_interrupt(&I2CD2);
-
   CH_IRQ_EPILOGUE();
 }
 #endif
@@ -490,16 +464,19 @@ void i2c_lld_init(void) {
 #if LPC17xx_I2C_USE_I2C0
   i2cObjectInit(&I2CD0);
   I2CD0.i2c = (LPC_I2C_TypeDef*) LPC_I2C0;
+  I2CD0.offset = i2c0;
 #endif /* LPC17xx_I2C_USE_I2C0 */
 
 #if LPC17xx_I2C_USE_I2C1
   i2cObjectInit(&I2CD1);
   I2CD1.i2c = (LPC_I2C_TypeDef*) LPC_I2C1;
+  I2CD1.offset = i2c1;
 #endif /* LPC17xx_I2C_USE_I2C1 */
 
 #if LPC17xx_I2C_USE_I2C2
   i2cObjectInit(&I2CD2);
   I2CD2.i2c = (LPC_I2C_TypeDef*) LPC_I2C2;
+  I2CD2.offset = i2c2;
 #endif /* LPC17xx_I2C_USE_I2C2 */
 }
 

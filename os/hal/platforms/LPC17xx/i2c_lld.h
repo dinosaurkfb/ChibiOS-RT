@@ -132,6 +132,11 @@
  */
 typedef uint16_t i2caddr_t;
 
+typedef enum {
+  i2c0 = 0,
+  i2c1 = 1,
+  i2c2 = 2
+} i2c_offset_t;
 /**
  * @brief   Type of I2C Driver condition flags.
  */
@@ -205,6 +210,9 @@ struct I2CDriver {
   I2CReg reg;
   BinarySemaphore done;
   VirtualTimer vt;
+  
+  /* I2C offset, value can be 0, 1, 2 */
+  i2c_offset_t offset;
 
   /* Pointer to the I2C registers block.*/                                \
   LPC_I2C_TypeDef        *i2c;
