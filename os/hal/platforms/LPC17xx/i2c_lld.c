@@ -125,11 +125,11 @@ static char *StrEvt(int evt)
   case EVT_TIME_ISR:
     return "time isr ";
   case EVT_TIMEOUT1:
-    return "timeout1 ";
+    return "stop timeout1 ";
   case EVT_TIMEOUT2:
-    return "timeout2 ";
+    return "start timeout2 ";
   case EVT_TIMEOUT3:
-    return "timeout3 ";
+    return "run timeout3 ";
   case EVT_FINISH:
     return "finish   ";
   case EVT_RET:
@@ -158,6 +158,7 @@ void I2C_Dump(void) {}
 
 static void dummy(void *arg) {
   (void)arg;
+  LEDON(10);
 }
 
 static void StartI2C(I2CDriver *i2cp)
@@ -213,12 +214,12 @@ static void FinishI2C(I2CDriver *i2cp, int err)
   DisableI2CInt();
 
   /* Stop the bus */
-  if(err<0 || i2cp->reg.bStop) {
+  if(err != I2CD_NO_ERROR || i2cp->reg.bStop) {
     AddLog(EVT_STOP, 0);
     i2cp->i2c->CONCLR = I2CF_STA | I2CF_SI | I2CF_AA;
     i2cp->i2c->CONSET = I2CF_STO;
   }
-
+  
   AddLog(EVT_FINISH, 0);
 }
 
@@ -234,8 +235,9 @@ static void i2c_tm_cb(void *arg) {
   switch(i2cp->reg.stat) {
   case I2C_STAT_WAIT_STOP:
     AddLog(EVT_TIMEOUT1, 0);
-    if( i2cp->i2c->CONSET & I2CF_STO ) 
+    if( i2cp->i2c->CONSET & I2CF_STO ) {
       FinishI2C(i2cp, E_I2C_TIMEOUT2);
+    }
     else 
       StartI2C(i2cp);
     break;
@@ -254,8 +256,9 @@ static void i2c_tm_cb(void *arg) {
       i2cp->reg.retry_start--;
       TryReStartI2C(i2cp);
     }
-    else 
+    else {
       FinishI2C(i2cp, E_I2C_TIMEOUT1);
+    }
     break;
   }
 
@@ -343,7 +346,7 @@ static void serve_interrupt(I2CDriver *i2cp) {
   case 0x18: /* addr+W sent, ACK has been received */
   case 0x28: /* data sent£¬ACK has been received */
     if(i2cp->rwBytes < i2cp->reg.len) {
-      AddLog(EVT_DATA, i2cp->reg.txbuf[i2cp->rwBytes]);
+      /* AddLog(EVT_DATA, i2cp->reg.txbuf[i2cp->rwBytes]); */
       i2cp->i2c->DAT = i2cp->reg.txbuf[i2cp->rwBytes++];
       i2cp->i2c->CONCLR = I2CF_STA | I2CF_SI;
     }
@@ -371,6 +374,7 @@ static void serve_interrupt(I2CDriver *i2cp) {
     break;
 
   case 0x50: /* Data received, ACK has been returned */
+    /* AddLog(EVT_DATA, i2cp->rwBytes); */
     i2cp->reg.rxbuf[i2cp->rwBytes++] = (uint8_t)(i2cp->i2c->DAT);
     i2cp->i2c->CONCLR = (i2cp->rwBytes == i2cp->reg.len-1) ? (I2CF_STA|I2CF_SI|I2CF_AA) : (I2CF_STA|I2CF_SI);
     break;
@@ -639,7 +643,7 @@ msg_t i2c_lld_master_receive_timeout(I2CDriver *i2cp, i2caddr_t addr,
     /* Wait I2C finish */
     chBSemWaitS(&(i2cp->done));
     if (i2cp->errors != I2CD_NO_ERROR) {
-      if (chVTIsArmedI(&vt)) {
+      if (!chVTIsArmedI(&vt)) {
 	AddLog(EVT_RET, i2cp->errors);
 	return RDY_TIMEOUT;
       }
@@ -711,7 +715,7 @@ msg_t i2c_lld_master_transmit_timeout(I2CDriver *i2cp, i2caddr_t addr,
     /* Wait I2C finish */
     chBSemWaitS(&(i2cp->done));
     if (i2cp->errors != I2CD_NO_ERROR) {
-      if (chVTIsArmedI(&vt)) {
+      if (!chVTIsArmedI(&vt)) {
 	AddLog(EVT_RET, i2cp->errors);
 	return RDY_TIMEOUT;
       }
