@@ -28,11 +28,11 @@
 #define NO_TEST  TRUE
 
 /* buffers depth */
-#define RX_DEPTH 6
-#define TX_DEPTH 6
+#define RX_DEPTH 36
+#define TX_DEPTH 36
 
 static uint8_t rxbuf[RX_DEPTH];
-static uint8_t txbuf[TX_DEPTH] = { 0x11, 0x12, 0x13, 0xAA, 0xCC, 0xFF};
+static uint8_t txbuf[TX_DEPTH];
 
 void print_buf(uint8_t *buf, size_t len) {
   size_t i = 0;
@@ -126,12 +126,22 @@ int main(void) {
 
 
   LOG_PRINT("*** Test WriteEEPROM and ReadEEPROM\n");
+  int32_t i = 0;
+  for (i = 0; i < TX_DEPTH; i++) {
+    txbuf[i] = i;
+  }
+
   status = WriteEEPROM(0, txbuf, TX_DEPTH);
-  LOG_PRINT("*** WriteEEPROM return: %d\n", status);
-  status = ReadEEPROM(0, rxbuf, RX_DEPTH);
-  LOG_PRINT("*** ReadEEPROM return: %d\n", status);
-  if (!memcmp(rxbuf, txbuf, RX_DEPTH)) {
+  LOG_PRINT("*** WriteEEPROM write %d bytes, return: %d\n", TX_DEPTH, status);
+  int32_t readbytes = 11;
+  status = ReadEEPROM(0, rxbuf, readbytes);
+  LOG_PRINT("*** ReadEEPROM read %d bytes, return: %d\n", readbytes, status);
+  if (!memcmp(rxbuf, txbuf, readbytes)) {
     LOG_PRINT("*** WriteEEPROM and ReadEEPROM test ok\n\n");;
+  } else {
+    LOG_PRINT("*** WriteEEPROM and ReadEEPROM test failed\n");;
+    I2C_Dump();
+    print_buf(rxbuf, readbytes);
   }
 
   while (TRUE) {

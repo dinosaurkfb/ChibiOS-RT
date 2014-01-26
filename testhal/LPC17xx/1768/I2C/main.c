@@ -43,12 +43,6 @@ void print_buf(uint8_t *buf, size_t len) {
   LOG_PRINT("\n***\n");
 }
 
-static void dummy(void *arg) {
-  (void)arg;
-  LEDON(10);
-}
-
-
 /*
  * Application entry point.
  */
@@ -140,6 +134,8 @@ int main(void) {
 
   status = WriteEEPROM(0, txbuf, TX_DEPTH);
   LOG_PRINT("*** WriteEEPROM write %d bytes, return: %d\n", TX_DEPTH, status);
+  
+  /* Weird problem, when read more than 9 bytes, it will fail */
   int32_t readbytes = 12;
   status = ReadEEPROM(0, rxbuf, readbytes);
   LOG_PRINT("*** ReadEEPROM read %d bytes, return: %d\n", readbytes, status);
