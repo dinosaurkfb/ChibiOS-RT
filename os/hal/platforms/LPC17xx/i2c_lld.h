@@ -41,11 +41,11 @@
 
 #define I2DAT_I2C               0x00000000  /* I2C Data Reg */
 #define I2ADR_I2C               0x00000000  /* I2C Slave Address Reg */
-#define I2SCLH_SCLH             (LPC17xx_PCLK/200000) //I2C clock 100 khz
-#define I2SCLL_SCLL             (LPC17xx_PCLK/200000) //I2C clock 100 khz
+#define I2SCLH_SCLH             (LPC17xx_PCLK/200000) /*I2C clock 100 khz */
+#define I2SCLL_SCLL             (LPC17xx_PCLK/200000) /*I2C clock 100 khz */
 
 
-//I2C
+/*I2C */
 #define E_I2C_STAT           1003
 #define E_I2C_TIMEOUT        1004
 #define E_I2C_TIMEOUT1       1005
@@ -129,11 +129,15 @@
  */
 typedef uint16_t i2caddr_t;
 
+/**
+ * @brief   Offset of each I2C interface.
+ */
 typedef enum {
   i2c0 = 0,
   i2c1 = 1,
   i2c2 = 2
 } i2c_offset_t;
+
 /**
  * @brief   Type of I2C Driver condition flags.
  */
@@ -151,8 +155,11 @@ typedef uint32_t i2cflags_t;
 typedef struct {
 } I2CConfig;
 
+/**
+ * @brief Structure for a running I2C interface, internal use only.
+ */
 typedef struct {
-  int stat;//0=idle 1=wait for i2c stop,2=wait for i2c start ok 3=normal
+  int stat;
   size_t len;
   uint8_t bRead;
   uint8_t bStop;
@@ -203,16 +210,18 @@ struct I2CDriver {
   I2C_DRIVER_EXT_FIELDS
 #endif
   /* End of the mandatory fields.*/
+
+  /**
+   * @brief   Read or write bytes when succeed.
+   */
+  size_t rwBytes;
+
+  /* Internal use only */
   I2CReg reg;
   BinarySemaphore done;
   VirtualTimer vt;
-
-  /* Read or write bytes when succeed. */
-  size_t rwBytes;
-  
   /* I2C offset, value can be 0, 1, 2 */
   i2c_offset_t offset;
-
   /* Pointer to the I2C registers block.*/                                \
   LPC_I2C_TypeDef        *i2c;
 };
