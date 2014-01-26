@@ -6,7 +6,7 @@ static I2CDriver *s_i2cp;
 
 //AT24C0x requires a 0x1010xxx as a slave address
 #define dev_addr   0b1010000
-static uint8_t s_buf[260];
+static uint8_t s_buf[9];
 
 void EEPROMInit(I2CDriver *i2cp) {
   /*
@@ -46,18 +46,31 @@ msg_t at24c0x_random_read(I2CDriver *i2cp, uint8_t addr, uint8_t *rxbuf) {
   return ret;
 }
 
-// len <= 256
-// 返回>=0, 读/写的字节数，<0, 错误
-// !!!! 注意：调用者必须在buf前面至少保留2字节空间给WriteEEPROM使用
 int WriteEEPROM(uint8_t addr, uint8_t *buf, size_t len)
 {
-  buf[0] = addr;
-  memcpy(&s_buf[1], buf, len);
+  uint8_t offset = 0;
+  size_t bytes_left = len;
+  size_t bytes_once = 8;
+  msg_t ret = RDY_OK;
+
   i2cAcquireBus(s_i2cp);
-  msg_t ret = i2cMasterTransmitTimeout(s_i2cp, dev_addr,
-				       s_buf, len+1,
-				       NULL, 0,
-				       MS2ST(2));
+  while (bytes_left > 0) {
+    s_buf[0] = addr + offset;
+    if (bytes_left < 8) {
+      bytes_once = bytes_left;
+    }
+    memcpy(&s_buf[1], buf + offset, bytes_once);
+    ret = i2cMasterTransmitTimeout(s_i2cp, dev_addr,
+				   s_buf, bytes_once+1,
+				   NULL, 0,
+				   MS2ST(2));
+    if (ret == RDY_OK) {
+      offset += bytes_once;
+      bytes_left -= bytes_once;
+    } else {
+      break;
+    }
+  }
   i2cReleaseBus(s_i2cp);
   return ret;
 }

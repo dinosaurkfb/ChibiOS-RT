@@ -19,6 +19,8 @@
 #include "ch.h"
 #include "hal.h"
 
+#include "string.h"
+
 #include "at24c0x.h"
 /*===========================================================================*/
 /* Configurable settings.                                                    */
@@ -27,11 +29,10 @@
 
 /* buffers depth */
 #define RX_DEPTH 6
-#define TX_DEPTH 4
+#define TX_DEPTH 6
 
 static uint8_t rxbuf[RX_DEPTH];
-static uint8_t txbuf[TX_DEPTH] = { 0x11, 0x12, 0x13, 0x14};
-//static i2cflags_t errors = 0;
+static uint8_t txbuf[TX_DEPTH] = { 0x11, 0x12, 0x13, 0xAA, 0xCC, 0xFF};
 
 void print_buf(uint8_t *buf, size_t len) {
   size_t i = 0;
@@ -42,16 +43,11 @@ void print_buf(uint8_t *buf, size_t len) {
   LOG_PRINT("\n***\n");
 }
 
-void ledon(void * arg) {
-  uint32_t i = (uint32_t)arg;
-  LEDON(i);
-}
 /*
  * Application entry point.
  */
 int main(void) {
   msg_t status;
-  static VirtualTimer vt4;
 
   /*
    * System initializations.
@@ -95,78 +91,49 @@ int main(void) {
   uint32_t s = 0;
 #endif
   
-  /* chThdSleepMilliseconds(1000); */
-  /* ledon(NULL); */
-  /* LOG_PRINT("*** LEDON\n"); */
-  /* chThdSleepMilliseconds(3000); */
-  /* LEDOFF(4); */
-  /* LOG_PRINT("*** LEDOFF\n"); */
-  /* chThdSleepMilliseconds(3000); */
-  
-/*   if (chVTIsArmedI(&vt4)) */
-/*     chVTResetI(&vt4); */
-/*   /\* LED4 set to OFF after 200mS.*\/ */
-/*   chVTSetI(&vt4, S2ST(5), ledon, (void *)4);   */
-/*   chVTResetI(&vt4); */
-/*   chVTSetI(&vt4, S2ST(3), ledon, (void *)5);   */
-/*   chVTResetI(&vt4); */
-/*   chVTSetI(&vt4, S2ST(1), ledon, (void *)6);   */
-/*   chThdSleepMilliseconds(2000); */
-/*   chVTResetI(&vt4); */
-/*   chVTSetI(&vt4, S2ST(1), ledon, (void *)7);   */
-/*   chThdSleepMilliseconds(2000); */
-/*   chVTResetI(&vt4); */
-
-/*   while (TRUE) { */
-/*     chThdSleepMilliseconds(1000); */
-/* #ifdef NO_TEST */
-/*     ++s; */
-/*     LOG_PRINT("*** Alive %u seconds.\n", s); */
-/* #endif */
-
-/*   } */
-
-  /* for(s = 4; s < 12; s++) { */
-  /*   LEDON(s); */
-  /*   chThdSleepMilliseconds(50); */
-  /* } */
-  /* chThdSleepMilliseconds(1000); */
-  /* for(s = 4; s < 12; s++) { */
-  /*   LEDOFF(s); */
-  /* } */
-  /* s = 0; */
   EEPROMInit(&I2CD1);
  
-  /**
-   * Prepares the accelerometer
-   */
-  /* status = at24c0x_write_byte(&I2CD1, 0x01, 55); */
-  /* LOG_PRINT("*** at24c0x_write_byte return: %d\n", status); */
+  LOG_PRINT("*** Test at24c0x_write_byte\n");
+  uint8_t byte = 57;
+  uint8_t addr = 0x01;
+  status = at24c0x_write_byte(&I2CD1, addr, byte);
+  LOG_PRINT("*** write %d to 0x%02x, return: %d\n", byte++, addr++, status);
+  status = at24c0x_write_byte(&I2CD1, addr, byte);
+  LOG_PRINT("*** write %d to 0x%02x, return: %d\n", byte++, addr++, status);
+  status = at24c0x_write_byte(&I2CD1, addr, byte);
+  LOG_PRINT("*** write %d to 0x%02x, return: %d\n", byte++, addr++, status);
   /* I2C_Dump(); */
-  status = at24c0x_write_byte(&I2CD1, 0x02, 59);
-  LOG_PRINT("*** at24c0x_write_byte %d bytes,return: %d\n", I2CD1.rwBytes, status);
-  I2C_Dump();
+  LOG_PRINT("*** Test at24c0x_write_byte end.\n\n");
+
+  LOG_PRINT("*** Test at24c0x_random_read\n");
   uint8_t rbyte = 0;
-  status = at24c0x_random_read(&I2CD1, 0x02, &rbyte);
-  LOG_PRINT("*** at24c0x_random_read %d bytes, return: %d\n", I2CD1.rwBytes, status);
-  LOG_PRINT("*** at24c0x_random_read rbyte: %d\n", rbyte);
-  I2C_Dump();
-  status = at24c0x_cur_read(&I2CD1, &rbyte);
-  LOG_PRINT("*** at24c0x_cur_read %d bytes, return: %d\n", I2CD1.rwBytes, status);
-  LOG_PRINT("*** at24c0x_cur_read rbyte: %d\n", rbyte);
-  status = at24c0x_cur_read(&I2CD1, &rbyte);
-  LOG_PRINT("*** at24c0x_cur_read %d bytes, return: %d\n", I2CD1.rwBytes, status);
-  LOG_PRINT("*** at24c0x_cur_read rbyte: %d\n", rbyte);
-  I2C_Dump();
-
-  /* status = WriteEEPROM(0, txbuf, TX_DEPTH); */
-  /* LOG_PRINT("*** WriteEEPROM return: %d\n", status); */
+  addr = 0x01;
+  status = at24c0x_random_read(&I2CD1, addr, &rbyte);
+  LOG_PRINT("*** random_read from 0x%02x, return: %d\n", addr, status);
+  LOG_PRINT("*** read rbyte: %d\n", rbyte);
   /* I2C_Dump(); */
-  /* status = ReadEEPROM(0, rxbuf, RX_DEPTH); */
-  /* LOG_PRINT("*** ReadEEPROM return: %d\n", status); */
-  /* I2C_Dump(); */
+  LOG_PRINT("*** Test at24c0x_random_read end.\n\n");
 
-  print_buf(rxbuf, RX_DEPTH);
+  LOG_PRINT("*** Test at24c0x_cur_read\n");
+  status = at24c0x_cur_read(&I2CD1, &rbyte);
+  LOG_PRINT("*** cur_read, return: %d\n", status);
+  LOG_PRINT("*** read rbyte: %d\n", rbyte);
+  status = at24c0x_cur_read(&I2CD1, &rbyte);
+  LOG_PRINT("*** cur_read, return: %d\n", status);
+  LOG_PRINT("*** read rbyte: %d\n", rbyte);
+  /* I2C_Dump(); */
+  LOG_PRINT("*** Test at24c0x_cur_read end.\n\n");
+
+
+  LOG_PRINT("*** Test WriteEEPROM and ReadEEPROM\n");
+  status = WriteEEPROM(0, txbuf, TX_DEPTH);
+  LOG_PRINT("*** WriteEEPROM return: %d\n", status);
+  status = ReadEEPROM(0, rxbuf, RX_DEPTH);
+  LOG_PRINT("*** ReadEEPROM return: %d\n", status);
+  if (!memcmp(rxbuf, txbuf, RX_DEPTH)) {
+    LOG_PRINT("*** WriteEEPROM and ReadEEPROM test ok\n\n");;
+  }
+
   while (TRUE) {
     chThdSleepMilliseconds(1000);
 #ifdef NO_TEST
