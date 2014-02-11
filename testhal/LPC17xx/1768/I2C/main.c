@@ -21,15 +21,32 @@
 
 #include "string.h"
 
+#include "update.h"
 #include "mc24lc0x.h"
 /*===========================================================================*/
 /* Configurable settings.                                                    */
 /*===========================================================================*/
 #define NO_TEST  TRUE
 
+#ifdef ENABLE_IAP
+static WORKING_AREA(waUpdaterThread, 128);
+static msg_t UpdaterThread(void *arg) {
+  (void)arg;
+  LOG_PRINT("*** Thread updater.\n");
+  chRegSetThreadName("updater");
+
+  /* Work loop.*/
+  while (TRUE) {
+    /* Waiting for a update packet.*/
+    uart0_scan();
+  }
+  return RDY_OK;
+}
+#endif /* #ifdef ENABLE_IAP */
+
 /* buffers depth */
-#define RX_DEPTH 36
-#define TX_DEPTH 36
+#define RX_DEPTH 256
+#define TX_DEPTH 256
 
 static uint8_t rxbuf[RX_DEPTH];
 static uint8_t txbuf[TX_DEPTH];
@@ -91,67 +108,90 @@ int main(void) {
   uint32_t s = 0;
 #endif
 
+#ifdef ENABLE_IAP
+  chThdCreateStatic(waUpdaterThread, sizeof waUpdaterThread,
+		    NORMALPRIO - 20, UpdaterThread, NULL);
+  chThdSleepMilliseconds(50);
+#endif /* #ifdef ENABLE_IAP */
+
   int32_t i = 0;
+
+  int32_t w_ret = -1;
+  int32_t r_ret = -1;
   EEPROMInit(&I2CD0);
  
-  LOG_PRINT("*** Test mc24lc0x_write_byte\n");
+  LOG_PRINT("\n*** Test mc24lc0x_write_byte\n");
   uint8_t byte = 57;
   uint8_t addr = 0x01;
   status = mc24lc0x_write_byte(&I2CD0, addr, byte);
-  LOG_PRINT("*** write %d to 0x%02x, return: %d\n", byte++, addr++, status);
+  LOG_PRINT("write %d to 0x%02x, return: %d\n", byte++, addr++, status);
   status = mc24lc0x_write_byte(&I2CD0, addr, byte);
-  LOG_PRINT("*** write %d to 0x%02x, return: %d\n", byte++, addr++, status);
+  LOG_PRINT("write %d to 0x%02x, return: %d\n", byte++, addr++, status);
   status = mc24lc0x_write_byte(&I2CD0, addr, byte);
-  LOG_PRINT("*** write %d to 0x%02x, return: %d\n", byte++, addr++, status);
+  LOG_PRINT("write %d to 0x%02x, return: %d\n", byte++, addr++, status);
   /* I2C_Dump(); */
   LOG_PRINT("*** Test mc24lc0x_write_byte end.\n\n");
+
+  chThdSleepMilliseconds(20);
 
   LOG_PRINT("*** Test mc24lc0x_random_read\n");
   uint8_t rbyte = 0;
   addr = 0x01;
   status = mc24lc0x_random_read(&I2CD0, addr, &rbyte);
-  LOG_PRINT("*** random_read from 0x%02x, return: %d\n", addr, status);
-  LOG_PRINT("*** read rbyte: %d\n", rbyte);
+  LOG_PRINT("random_read from 0x%02x, return: %d\n", addr, status);
+  LOG_PRINT("read rbyte: %d\n", rbyte);
   /* I2C_Dump(); */
   LOG_PRINT("*** Test mc24lc0x_random_read end.\n\n");
 
+  chThdSleepMilliseconds(20);
+
   LOG_PRINT("*** Test mc24lc0x_cur_read\n");
   status = mc24lc0x_cur_read(&I2CD0, &rbyte);
-  LOG_PRINT("*** cur_read, return: %d\n", status);
-  LOG_PRINT("*** read rbyte: %d\n", rbyte);
+  LOG_PRINT("cur_read, return: %d\n", status);
+  LOG_PRINT("read rbyte: %d\n", rbyte);
   status = mc24lc0x_cur_read(&I2CD0, &rbyte);
-  LOG_PRINT("*** cur_read, return: %d\n", status);
-  LOG_PRINT("*** read rbyte: %d\n", rbyte);
+  LOG_PRINT("cur_read, return: %d\n", status);
+  LOG_PRINT("read rbyte: %d\n", rbyte);
   /* I2C_Dump(); */
   LOG_PRINT("*** Test mc24lc0x_cur_read end.\n\n");
-
-  LOG_PRINT("*** MS2ST(10) = %d, US2ST(100) = %d\n", MS2ST(10), US2ST(100));
 
   LOG_PRINT("*** Test WriteEEPROM and ReadEEPROM\n");
   for (i = 0; i < TX_DEPTH; i++) {
     txbuf[i] = i;
   }
 
-  status = WriteEEPROM(0, txbuf, TX_DEPTH);
-  LOG_PRINT("*** WriteEEPROM write %d bytes, return: %d\n", TX_DEPTH, status);
-  
-  /* Weird problem, when read more than 9 bytes, it will fail */
-  int32_t readbytes = 12;
-  status = ReadEEPROM(0, rxbuf, readbytes);
-  LOG_PRINT("*** ReadEEPROM read %d bytes, return: %d\n", readbytes, status);
+  int32_t readbytes = 120;
+  w_ret = WriteEEPROM(0, txbuf, readbytes);
+  LOG_PRINT("WriteEEPROM write %d bytes, return: %d\n", readbytes, w_ret);
   I2C_Dump();
-  if (!memcmp(rxbuf, txbuf, readbytes)) {
-    LOG_PRINT("*** WriteEEPROM and ReadEEPROM test ok\n\n");
-  } else {
-    LOG_PRINT("*** WriteEEPROM and ReadEEPROM test failed\n");
-    print_buf(rxbuf, readbytes);
+  if (-1 == w_ret) {
+    LOG_PRINT("WriteEEPROM test failed\n");
+    goto loop;
+  }
+  
+  r_ret = ReadEEPROM(0, rxbuf, readbytes);
+  LOG_PRINT("ReadEEPROM read %d bytes, return: %d\n", readbytes, r_ret);
+  //  I2C_Dump();
+  if (-1 == r_ret) {
+    LOG_PRINT("ReadEEPROM test failed\n");
+    goto loop;
   }
 
+  if (0 == w_ret && 0 == r_ret) {
+    if (!memcmp(rxbuf, txbuf, readbytes)) {
+      LOG_PRINT("WriteEEPROM and ReadEEPROM test ok\n\n");
+    } else {
+      LOG_PRINT("WriteEEPROM and ReadEEPROM test failed\n");
+      print_buf(rxbuf, readbytes);
+    }
+  }
+
+ loop:
   while (TRUE) {
     chThdSleepMilliseconds(1000);
 #ifdef NO_TEST
     ++s;
-    if (s % 30 == 0) {
+    if (s % 60 == 0) {
       LOG_PRINT("*** Alive %u seconds.\n", s);
     }
 #endif

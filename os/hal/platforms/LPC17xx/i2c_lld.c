@@ -51,12 +51,12 @@
 #define I2C_STAT_WAIT_START 2
 #define I2C_STAT_RUN 3
 
-#define I2C_RETRY_INTERVAL 200
+#define I2C_RETRY_INTERVAL 2000
 
 #define EnableI2CInt() NVIC_EnableIRQ(I2C0_IRQn + i2cp->offset)
 #define DisableI2CInt() NVIC_DisableIRQ(I2C0_IRQn + i2cp->offset)
 
-#define ResetI2CTimer() {chVTResetI(&(i2cp->vt));			\
+#define ResetI2CTimer() {if (chVTIsArmedI(&(i2cp->vt))) chVTResetI(&(i2cp->vt)); \
     chVTSetI(&(i2cp->vt), US2ST(I2C_RETRY_INTERVAL), i2c_tm_cb, (void *)i2cp);}
 
 /*===========================================================================*/
@@ -158,7 +158,6 @@ void I2C_Dump(void) {}
 
 static void dummy(void *arg) {
   (void)arg;
-  LEDON(10);
 }
 
 static void StartI2C(I2CDriver *i2cp)
@@ -210,7 +209,9 @@ static void FinishI2C(I2CDriver *i2cp, int err)
   i2cp->reg.stat = 0;
   i2cp->errors = err;
 
-  chVTResetI(&(i2cp->vt));
+  if (chVTIsArmedI(&(i2cp->vt))) {
+    chVTResetI(&(i2cp->vt));
+  }
   DisableI2CInt();
 
   /* Stop the bus */
@@ -287,8 +288,9 @@ int Locked_I2C_Request(I2CDriver *i2cp, uint8_t devAddr, uint8_t *buf, int len, 
   i2cp->reg.needAck = needAck;
   chBSemResetI(&(i2cp->done), TRUE);
 
-  if (chVTIsArmedI(&(i2cp->vt)))
+  if (chVTIsArmedI(&(i2cp->vt))) {
     chVTResetI(&(i2cp->vt));
+  }
   chVTSetI(&(i2cp->vt), US2ST(I2C_RETRY_INTERVAL), i2c_tm_cb, (void *)i2cp);
 
   TryStartI2C(i2cp);
@@ -350,9 +352,10 @@ static void serve_interrupt(I2CDriver *i2cp) {
       i2cp->i2c->DAT = i2cp->reg.txbuf[i2cp->rwBytes++];
       i2cp->i2c->CONCLR = I2CF_STA | I2CF_SI;
     }
-    else
+    else {
       /* Transmit finish */
       FinishI2C(i2cp, I2CD_NO_ERROR);
+    }
     break;
 
   case 0x38: /*arbitration lost in SLA+R/W or data bytes */
@@ -694,6 +697,7 @@ msg_t i2c_lld_master_transmit_timeout(I2CDriver *i2cp, i2caddr_t addr,
   i2cp->reg.bRead = I2C_B_WRITE;
   i2cp->reg.bStop = I2C_B_STOP1;
   i2cp->reg.needAck = I2C_B_NEEDACK;
+  chBSemResetI(&(i2cp->done), TRUE);
 
   while (1) {
     /* Reset all retry settings */
@@ -703,7 +707,6 @@ msg_t i2c_lld_master_transmit_timeout(I2CDriver *i2cp, i2caddr_t addr,
 #ifdef DEBUG_I2C
     s_log_idx=0;
 #endif
-    chBSemResetI(&(i2cp->done), TRUE);
 
     if (chVTIsArmedI(&(i2cp->vt))) {
       chVTResetI(&(i2cp->vt));
@@ -711,9 +714,10 @@ msg_t i2c_lld_master_transmit_timeout(I2CDriver *i2cp, i2caddr_t addr,
     chVTSetI(&(i2cp->vt), US2ST(I2C_RETRY_INTERVAL), i2c_tm_cb, (void *)i2cp);
 
     TryStartI2C(i2cp);
-
+    chSysUnlock();
     /* Wait I2C finish */
-    chBSemWaitS(&(i2cp->done));
+    chBSemWait(&(i2cp->done));
+    chSysLock();
     if (i2cp->errors != I2CD_NO_ERROR) {
       if (!chVTIsArmedI(&vt)) {
 	AddLog(EVT_RET, i2cp->errors);

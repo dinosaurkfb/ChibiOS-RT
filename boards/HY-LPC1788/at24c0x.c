@@ -52,6 +52,7 @@ int WriteEEPROM(uint8_t addr, uint8_t *buf, size_t len)
   size_t bytes_left = len;
   size_t bytes_once = 8;
   msg_t ret = RDY_OK;
+  volatile uint32_t i = 0;
 
   i2cAcquireBus(s_i2cp);
   while (bytes_left > 0) {
@@ -65,6 +66,7 @@ int WriteEEPROM(uint8_t addr, uint8_t *buf, size_t len)
 				   NULL, 0,
 				   MS2ST(2));
     if (ret == RDY_OK) {
+      for (i = 0; i < 20000; i++);
       offset += bytes_once;
       bytes_left -= bytes_once;
     } else {
