@@ -25,16 +25,6 @@
  * 7...0        Lowest...highest.
  */
 
-#define Enable_IAP                          TRUE
-
-/*
- * IAP vector table is located at 0x00008000, see link script
- */
-#if defined(CORTEX_VTOR_INIT)
-#undef CORTEX_VTOR_INIT
-#endif
-#define CORTEX_VTOR_INIT                    0x00008000
-
 /*
  * HAL driver system settings.
  */

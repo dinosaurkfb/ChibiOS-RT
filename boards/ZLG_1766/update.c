@@ -2,7 +2,7 @@
 #include "hal.h"
 #include "string.h"
 
-#ifdef Enable_IAP
+#ifdef ENABLE_IAP
 #include "iap.h"
 #include "update.h"
 #include "ver.h"
@@ -133,4 +133,4 @@ void uart0_scan(void) {
   }
 }
 
-#endif /* #ifdef Enable_IAP */
+#endif /* #ifdef ENABLE_IAP */
