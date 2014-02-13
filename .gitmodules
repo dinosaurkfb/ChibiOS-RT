@@ -1,6 +1,6 @@
-[submodule "E:\\Dpan\\my_docs\\GCloud\\dev\\ChibiOS-RT\\boards\\MON"]
-	path = E:\\Dpan\\my_docs\\GCloud\\dev\\ChibiOS-RT\\boards\\MON
-	url = git@bitbucket.org:dinowolf/mon.git
 [submodule "boards/MON"]
 	path = boards/MON
 	url = https://pin_k@bitbucket.org/dinowolf/mon.git
+[submodule "middleware"]
+	path = middleware
+	url = https://pin_k@bitbucket.org/dinowolf/middleware.git
