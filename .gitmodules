@@ -1,6 +1,6 @@
 [submodule "boards/MON"]
 	path = boards/MON
 	url = https://pin_k@bitbucket.org/dinowolf/mon.git
-[submodule "middleware"]
-	path = middleware
+[submodule "private/middleware"]
+	path = private/middleware
 	url = https://pin_k@bitbucket.org/dinowolf/middleware.git
