@@ -1,5 +1,6 @@
 #ifndef _MC24LC0X_H_
 #define _MC24LC0X_H_
+#if HAL_USE_I2C
 
 #if !defined(_FROM_ASM_)
 #ifdef __cplusplus
@@ -17,4 +18,5 @@ extern "C" {
 #endif
 #endif /* _FROM_ASM_ */
 
+#endif /* #if HAL_USE_I2C */
 #endif /* _MC24LC0X_H_ */

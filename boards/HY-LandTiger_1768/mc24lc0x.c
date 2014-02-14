@@ -2,6 +2,7 @@
 #include "hal.h"
 #include "string.h"
 
+#if HAL_USE_I2C
 static I2CDriver *s_i2cp;
 
 //MC24LC0x requires a 0x1010xxx as a slave address
@@ -74,3 +75,5 @@ int ReadEEPROM(uint8_t addr, uint8_t *buf, size_t len)
   i2cReleaseBus(s_i2cp);
   return ret;
 }
+
+#endif /* #if HAL_USE_I2C */
