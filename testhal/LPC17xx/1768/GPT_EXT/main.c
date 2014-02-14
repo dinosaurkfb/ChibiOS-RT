@@ -131,6 +131,7 @@ static msg_t WorkerThread(void *arg) {
       }
     }
   }
+  return RDY_OK;
 }
 
 /*
