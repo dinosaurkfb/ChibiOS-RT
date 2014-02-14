@@ -28,7 +28,7 @@
 /*===========================================================================*/
 #define NO_TEST  TRUE
 
-#ifdef ENABLE_IAP
+#if ENABLE_IAP
 static WORKING_AREA(waUpdaterThread, 128);
 static msg_t UpdaterThread(void *arg) {
   (void)arg;
@@ -42,7 +42,7 @@ static msg_t UpdaterThread(void *arg) {
   }
   return RDY_OK;
 }
-#endif /* #ifdef ENABLE_IAP */
+#endif /* #if ENABLE_IAP */
 
 /* buffers depth */
 #define RX_DEPTH 256
@@ -108,11 +108,11 @@ int main(void) {
   uint32_t s = 0;
 #endif
 
-#ifdef ENABLE_IAP
+#if ENABLE_IAP
   chThdCreateStatic(waUpdaterThread, sizeof waUpdaterThread,
 		    NORMALPRIO - 20, UpdaterThread, NULL);
   chThdSleepMilliseconds(50);
-#endif /* #ifdef ENABLE_IAP */
+#endif /* #if ENABLE_IAP */
 
   int32_t i = 0;
 

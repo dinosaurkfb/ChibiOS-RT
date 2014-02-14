@@ -1,6 +1,8 @@
 #ifndef _UPDATE_H_
 #define _UPDATE_H_
 
+#if ENABLE_IAP
+
 #define TYPE_UART_UPDATA      0x20
 #define TYPE_UART_WINFO       0x00
 #define TYPE_UART_RINFO       0x01
@@ -62,4 +64,5 @@ extern "C" {
 }
 #endif
 
+#endif /* #if ENABLE_IAP */
 #endif /* _UPDATE_H_ */

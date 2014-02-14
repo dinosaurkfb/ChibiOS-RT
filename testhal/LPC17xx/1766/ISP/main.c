@@ -27,6 +27,7 @@
 /*===========================================================================*/
 #define NO_TEST  TRUE
 
+#if ENABLE_IAP
 static WORKING_AREA(waUpdaterThread, 128);
 static msg_t UpdaterThread(void *arg) {
   (void)arg;
@@ -40,6 +41,7 @@ static msg_t UpdaterThread(void *arg) {
   }
   return RDY_OK;
 }
+#endif /* #if ENABLE_IAP */
 
 /*
  * Application entry point.
@@ -88,8 +90,11 @@ int main(void) {
   uint32_t s = 0;
 #endif
 
+#if ENABLE_IAP
   chThdCreateStatic(waUpdaterThread, sizeof waUpdaterThread,
 		    NORMALPRIO - 20, UpdaterThread, NULL);
+#endif /* #if ENABLE_IAP */
+
   while (TRUE) {
     chThdSleepMilliseconds(1000);
 #ifdef NO_TEST

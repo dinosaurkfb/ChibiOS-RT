@@ -30,14 +30,13 @@
 
 #define ENABLE_IAP                          TRUE
 
-#ifdef ENABLE_IAP
+#if ENABLE_IAP
 /**
  * @brief   NVIC VTOR initialization expression.
  */
 #define CORTEX_VTOR_INIT                0x00008000
 
-#endif /* #ifdef ENABLE_IAP */
-
+#endif /* #if ENABLE_IAP */
 
 /*===========================================================================*/
 /**

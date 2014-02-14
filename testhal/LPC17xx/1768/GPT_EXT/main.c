@@ -29,7 +29,7 @@
 
 #define NO_TEST  TRUE
 
-#ifdef ENABLE_IAP
+#if ENABLE_IAP
 static WORKING_AREA(waUpdaterThread, 128);
 static msg_t UpdaterThread(void *arg) {
   (void)arg;
@@ -43,7 +43,7 @@ static msg_t UpdaterThread(void *arg) {
   }
   return RDY_OK;
 }
-#endif /* #ifdef ENABLE_IAP */
+#endif /* #if ENABLE_IAP */
 
 #if (TEST_EXT == TRUE)
 #undef NO_TEST
@@ -235,11 +235,11 @@ int main(void) {
   halInit();
   chSysInit();
 
-#ifdef ENABLE_IAP
+#if ENABLE_IAP
   chThdCreateStatic(waUpdaterThread, sizeof waUpdaterThread,
 		    NORMALPRIO - 20, UpdaterThread, NULL);
   chThdSleepMilliseconds(50);
-#endif /* #ifdef ENABLE_IAP */
+#endif /* #if ENABLE_IAP */
 
 #if (TEST_EXT == TRUE)
   /*
