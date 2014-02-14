@@ -21,11 +21,28 @@
 
 #include "string.h"
 
+#include "update.h"
 #include "at24c0x.h"
 /*===========================================================================*/
 /* Configurable settings.                                                    */
 /*===========================================================================*/
 #define NO_TEST  TRUE
+
+#if ENABLE_IAP
+static WORKING_AREA(waUpdaterThread, 128);
+static msg_t UpdaterThread(void *arg) {
+  (void)arg;
+  LOG_PRINT("*** Thread updater.\n");
+  chRegSetThreadName("updater");
+
+  /* Work loop.*/
+  while (TRUE) {
+    /* Waiting for a update packet.*/
+    uart0_scan();
+  }
+  return RDY_OK;
+}
+#endif /* #if ENABLE_IAP */
 
 /* buffers depth */
 #define RX_DEPTH 256
@@ -91,6 +108,12 @@ int main(void) {
   uint32_t s = 0;
 #endif
   
+#if ENABLE_IAP
+  chThdCreateStatic(waUpdaterThread, sizeof waUpdaterThread,
+		    NORMALPRIO - 20, UpdaterThread, NULL);
+  chThdSleepMilliseconds(50);
+#endif /* #if ENABLE_IAP */
+
   int32_t w_ret = -1;
   int32_t r_ret = -1;
   EEPROMInit(&I2CD1);

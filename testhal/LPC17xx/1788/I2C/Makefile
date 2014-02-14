@@ -62,7 +62,7 @@ include $(CHIBIOS)/os/kernel/kernel.mk
 include $(CHIBIOS)/test/test.mk
 
 # Define linker script file here
-LDSCRIPT= $(PORTLD)/LPC1788.ld
+LDSCRIPT= $(PORTLD)/LPC1788_iap.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.

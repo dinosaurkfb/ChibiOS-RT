@@ -195,12 +195,12 @@ void  Compare(uint32_t dst, uint32_t src, uint32_t no)
 
 
 /* watchdog timeout value in ms */
-#define WDT_TIMEOUT 500
+#define WDT_TIMEOUT 100
 
 void enter_isp_with_wdt(void)
 {
   /* Set watchdog timeout */
-  LPC_WDT->TC =WDT_TIMEOUT * (LPC17xx_CCLK / 40000);
+  LPC_WDT->TC = WDT_TIMEOUT * (LPC17xx_CCLK / 40000);
   /* Enable watchdog, reset system when timeout */
   LPC_WDT->MOD=3;
   chSysDisable();

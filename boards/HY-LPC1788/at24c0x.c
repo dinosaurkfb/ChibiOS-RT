@@ -67,7 +67,7 @@ int WriteEEPROM(uint8_t addr, uint8_t *buf, size_t len)
 				   NULL, 0,
 				   MS2ST(2));
     if (ret == RDY_OK) {
-      for (i = 0; i < 20000; i++);
+      for (i = 0; i < 10000; i++);
       offset += bytes_once;
       bytes_left -= bytes_once;
     } else {
