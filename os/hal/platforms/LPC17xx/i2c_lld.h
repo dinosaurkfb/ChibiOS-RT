@@ -41,8 +41,8 @@
 
 #define I2DAT_I2C               0x00000000  /* I2C Data Reg */
 #define I2ADR_I2C               0x00000000  /* I2C Slave Address Reg */
-#define I2SCLH_SCLH             (LPC17xx_PCLK/800000) /*I2C clock 100 khz */
-#define I2SCLL_SCLL             (LPC17xx_PCLK/800000) /*I2C clock 100 khz */
+#define I2SCLH_SCLH             (LPC17xx_PCLK/800000) /*I2C clock 400 khz */
+#define I2SCLL_SCLL             (LPC17xx_PCLK/800000) /*I2C clock 400 khz */
 
 
 /*I2C */

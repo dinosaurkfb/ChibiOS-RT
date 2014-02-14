@@ -698,6 +698,7 @@ msg_t i2c_lld_master_transmit_timeout(I2CDriver *i2cp, i2caddr_t addr,
   i2cp->reg.bStop = I2C_B_STOP1;
   i2cp->reg.needAck = I2C_B_NEEDACK;
   chBSemResetI(&(i2cp->done), TRUE);
+  volatile uint32_t i = 0;
 
   while (1) {
     /* Reset all retry settings */
@@ -717,6 +718,7 @@ msg_t i2c_lld_master_transmit_timeout(I2CDriver *i2cp, i2caddr_t addr,
     chSysUnlock();
     /* Wait I2C finish */
     chBSemWait(&(i2cp->done));
+    for (i = 0; i < 5000; i++);
     chSysLock();
     if (i2cp->errors != I2CD_NO_ERROR) {
       if (!chVTIsArmedI(&vt)) {
