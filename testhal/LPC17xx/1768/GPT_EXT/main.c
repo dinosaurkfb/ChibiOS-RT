@@ -19,6 +19,8 @@
 #include "ch.h"
 #include "hal.h"
 
+#include "update.h"
+
 /*===========================================================================*/
 /* Configurable settings.                                                    */
 /*===========================================================================*/
@@ -26,6 +28,22 @@
 #define TEST_GPT TRUE
 
 #define NO_TEST  TRUE
+
+#ifdef ENABLE_IAP
+static WORKING_AREA(waUpdaterThread, 128);
+static msg_t UpdaterThread(void *arg) {
+  (void)arg;
+  LOG_PRINT("*** Thread updater.\n");
+  chRegSetThreadName("updater");
+
+  /* Work loop.*/
+  while (TRUE) {
+    /* Waiting for a update packet.*/
+    uart0_scan();
+  }
+  return RDY_OK;
+}
+#endif /* #ifdef ENABLE_IAP */
 
 #if (TEST_EXT == TRUE)
 #undef NO_TEST
@@ -217,6 +235,11 @@ int main(void) {
   halInit();
   chSysInit();
 
+#ifdef ENABLE_IAP
+  chThdCreateStatic(waUpdaterThread, sizeof waUpdaterThread,
+		    NORMALPRIO - 20, UpdaterThread, NULL);
+  chThdSleepMilliseconds(50);
+#endif /* #ifdef ENABLE_IAP */
 
 #if (TEST_EXT == TRUE)
   /*
