@@ -57,7 +57,7 @@ static msg_t UpdaterThread(void *arg) {
 #endif
 
 #ifndef ITERATIONS
-#define ITERATIONS      100
+#define ITERATIONS      10 //100
 #endif
 
 #ifndef NUM_THREADS
