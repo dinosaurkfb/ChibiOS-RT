@@ -25,6 +25,10 @@
 #include "ch.h"
 #include "hal.h"
 
+#ifdef LPC177x_8x
+#include "pinsel_lld.h"
+#endif /* #ifdef LPC177x_8x */
+
 #if HAL_USE_SERIAL || defined(__DOXYGEN__)
 
 /*===========================================================================*/
@@ -265,10 +269,10 @@ void sd_lld_start(SerialDriver *sdp, const SerialConfig *config) {
        */
       PINSEL_ConfigPin(0,2,1);
       PINSEL_ConfigPin(0,3,1);
-#else
+#else /* #ifdef LPC177x_8x */
       LPC_PINCON->PINSEL0 &=~(0x0FL << 4);
       LPC_PINCON->PINSEL0 |= (0x01 << 4)|(0x01 << 6); 
-#endif
+#endif /* #ifdef LPC177x_8x */
       LPC_SC->PCONP |= (1 << 3);
       nvicEnableVector(UART0_IRQn,
                        CORTEX_PRIORITY_MASK(LPC17xx_SERIAL_UART0_IRQ_PRIORITY));

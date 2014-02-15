@@ -79,10 +79,10 @@ typedef enum
 
 
 /** Pointer to Function returning Void (any number of parameters) */
-typedef void (*PFV)();
+typedef void (*PFV)(void);
 
 /** Pointer to Function returning int32_t (any number of parameters) */
-typedef int32_t(*PFI)();
+typedef int32_t(*PFI)(void);
 
 /**
  * @}
