@@ -38,8 +38,9 @@
 #define VAL_GPIO0DIR            0x00000000
 #define VAL_GPIO0DATA           0x00000000
 
-#define LEDON(x) palSetPad(GPIO2, (11 - (x)))
-#define LEDOFF(x) palClearPad(GPIO2, (11 - (x)))
+#define LEDON(x)                palSetPad(GPIO2, (11 - (x)))
+#define LEDOFF(x)               palClearPad(GPIO2, (11 - (x)))
+#define ToggleLED(x)            palTogglePad(GPIO2, (11 - (x)))
 
 /*
  * GPIO 1 initial setup.
