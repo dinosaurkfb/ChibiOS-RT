@@ -188,6 +188,10 @@ extern GPTDriver GPTD3;
 extern GPTDriver GPTD4;
 #endif
 
+#define gpt_lld_change_interval(gptp, interval) {			\
+    gpt_lld_start_timer(gptp, interval);				\
+  }
+
 #ifdef __cplusplus
 extern "C" {
 #endif

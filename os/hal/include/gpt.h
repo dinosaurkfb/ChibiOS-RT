@@ -96,9 +96,9 @@ typedef void (*gptcallback_t)(GPTDriver *gptp);
  *
  * @iclass
  */
-#define gptChangeIntervalI(gptp, interval) {                                  \
-  gpt_lld_change_interval(gptp, interval);                                    \
-}
+#define gptChangeIntervalI(gptp, interval) {				\
+    gpt_lld_change_interval(gptp, interval);				\
+  }
 
 /*===========================================================================*/
 /* External declarations.                                                    */
