@@ -90,6 +90,33 @@
 #endif
 
 /**
+ * @brief   UART1 driver enable switch.
+ * @details If set to @p TRUE the support for UART1 is included.
+ * @note    The default is @p TRUE .
+ */
+#if !defined(LPC17xx_SERIAL_USE_UART1) || defined(__DOXYGEN__)
+#define LPC17xx_SERIAL_USE_UART1            TRUE
+#endif
+
+/**
+ * @brief   UART2 driver enable switch.
+ * @details If set to @p TRUE the support for UART2 is included.
+ * @note    The default is @p TRUE .
+ */
+#if !defined(LPC17xx_SERIAL_USE_UART2) || defined(__DOXYGEN__)
+#define LPC17xx_SERIAL_USE_UART2            TRUE
+#endif
+
+/**
+ * @brief   UART3 driver enable switch.
+ * @details If set to @p TRUE the support for UART3 is included.
+ * @note    The default is @p TRUE .
+ */
+#if !defined(LPC17xx_SERIAL_USE_UART3) || defined(__DOXYGEN__)
+#define LPC17xx_SERIAL_USE_UART3            TRUE
+#endif
+
+/**
  * @brief   FIFO preload parameter.
  * @details Configuration parameter, this values defines how many bytes are
  *          preloaded in the HW transmit FIFO for each interrupt, the maximum
@@ -107,6 +134,27 @@
  */
 #if !defined(LPC17xx_SERIAL_UART0_IRQ_PRIORITY) || defined(__DOXYGEN__)
 #define LPC17xx_SERIAL_UART0_IRQ_PRIORITY   3
+#endif
+
+/**
+ * @brief   UART1 interrupt priority level setting.
+ */
+#if !defined(LPC17xx_SERIAL_UART1_IRQ_PRIORITY) || defined(__DOXYGEN__)
+#define LPC17xx_SERIAL_UART1_IRQ_PRIORITY   3
+#endif
+
+/**
+ * @brief   UART2 interrupt priority level setting.
+ */
+#if !defined(LPC17xx_SERIAL_UART2_IRQ_PRIORITY) || defined(__DOXYGEN__)
+#define LPC17xx_SERIAL_UART2_IRQ_PRIORITY   3
+#endif
+
+/**
+ * @brief   UART3 interrupt priority level setting.
+ */
+#if !defined(LPC17xx_SERIAL_UART3_IRQ_PRIORITY) || defined(__DOXYGEN__)
+#define LPC17xx_SERIAL_UART3_IRQ_PRIORITY   3
 #endif
 
 /*===========================================================================*/
@@ -174,6 +222,18 @@ typedef struct {
 
 #if LPC17xx_SERIAL_USE_UART0 && !defined(__DOXYGEN__)
 extern SerialDriver SD1;
+#endif
+
+#if LPC17xx_SERIAL_USE_UART1 && !defined(__DOXYGEN__)
+extern SerialDriver SD2;
+#endif
+
+#if LPC17xx_SERIAL_USE_UART2 && !defined(__DOXYGEN__)
+extern SerialDriver SD3;
+#endif
+
+#if LPC17xx_SERIAL_USE_UART3 && !defined(__DOXYGEN__)
+extern SerialDriver SD4;
 #endif
 
 #ifdef __cplusplus

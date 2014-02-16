@@ -40,6 +40,21 @@
 SerialDriver SD1;
 #endif
 
+#if LPC17xx_SERIAL_USE_UART1 || defined(__DOXYGEN__)
+/** @brief UART1 serial driver identifier.*/
+SerialDriver SD2;
+#endif
+
+#if LPC17xx_SERIAL_USE_UART2 || defined(__DOXYGEN__)
+/** @brief UART2 serial driver identifier.*/
+SerialDriver SD3;
+#endif
+
+#if LPC17xx_SERIAL_USE_UART3 || defined(__DOXYGEN__)
+/** @brief UART3 serial driver identifier.*/
+SerialDriver SD4;
+#endif
+
 /*===========================================================================*/
 /* Driver local variables and types.                                         */
 /*===========================================================================*/
@@ -196,13 +211,37 @@ static void preload(SerialDriver *sdp) {
 }
 
 /**
- * @brief   Driver SD1 output notification.
+ * @brief   Driver SD2 output notification.
  */
 #if LPC17xx_SERIAL_USE_UART0 || defined(__DOXYGEN__)
 static void notify1(GenericQueue *qp) {
 
   (void)qp;
   preload(&SD1);
+}
+#endif
+
+#if LPC17xx_SERIAL_USE_UART1 || defined(__DOXYGEN__)
+static void notify2(GenericQueue *qp) {
+
+  (void)qp;
+  preload(&SD2);
+}
+#endif
+
+#if LPC17xx_SERIAL_USE_UART2 || defined(__DOXYGEN__)
+static void notify3(GenericQueue *qp) {
+
+  (void)qp;
+  preload(&SD3);
+}
+#endif
+
+#if LPC17xx_SERIAL_USE_UART3 || defined(__DOXYGEN__)
+static void notify4(GenericQueue *qp) {
+
+  (void)qp;
+  preload(&SD4);
 }
 #endif
 
@@ -226,6 +265,54 @@ CH_IRQ_HANDLER(Vector54) {
 }
 #endif
 
+/**
+ * @brief   UART1 IRQ handler.
+ *
+ * @isr
+ */
+#if LPC17xx_SERIAL_USE_UART1 || defined(__DOXYGEN__)
+CH_IRQ_HANDLER(Vector58) {
+
+  CH_IRQ_PROLOGUE();
+
+  serve_interrupt(&SD2);
+
+  CH_IRQ_EPILOGUE();
+}
+#endif
+
+/**
+ * @brief   UART2 IRQ handler.
+ *
+ * @isr
+ */
+#if LPC17xx_SERIAL_USE_UART2 || defined(__DOXYGEN__)
+CH_IRQ_HANDLER(Vector5C) {
+
+  CH_IRQ_PROLOGUE();
+
+  serve_interrupt(&SD3);
+
+  CH_IRQ_EPILOGUE();
+}
+#endif
+
+/**
+ * @brief   UART3 IRQ handler.
+ *
+ * @isr
+ */
+#if LPC17xx_SERIAL_USE_UART3 || defined(__DOXYGEN__)
+CH_IRQ_HANDLER(Vector60) {
+
+  CH_IRQ_PROLOGUE();
+
+  serve_interrupt(&SD4);
+
+  CH_IRQ_EPILOGUE();
+}
+#endif
+
 /*===========================================================================*/
 /* Driver exported functions.                                                */
 /*===========================================================================*/
@@ -240,6 +327,21 @@ void sd_lld_init(void) {
 #if LPC17xx_SERIAL_USE_UART0
   sdObjectInit(&SD1, NULL, notify1);
   SD1.uart = (LPC_UART_TypeDef*) LPC_UART0;
+#endif
+
+#if LPC17xx_SERIAL_USE_UART1
+  sdObjectInit(&SD2, NULL, notify2);
+  SD2.uart = (LPC_UART_TypeDef*) LPC_UART1;
+#endif
+
+#if LPC17xx_SERIAL_USE_UART2
+  sdObjectInit(&SD3, NULL, notify3);
+  SD3.uart = (LPC_UART_TypeDef*) LPC_UART2;
+#endif
+
+#if LPC17xx_SERIAL_USE_UART3
+  sdObjectInit(&SD4, NULL, notify4);
+  SD4.uart = (LPC_UART_TypeDef*) LPC_UART3;
 #endif
 }
 
@@ -261,21 +363,107 @@ void sd_lld_start(SerialDriver *sdp, const SerialConfig *config) {
   if (sdp->state == SD_STOP) {
 #if LPC17xx_SERIAL_USE_UART0
     if (&SD1 == sdp) {
-#ifdef LPC177x_8x
       /*
-       * Initialize UART0 pin connect
+       * Initialize UART0 default pin connect
        * P0.2: U0_TXD
        * P0.3: U0_RXD
+       * Note: If user has defined P0_2_FUNC and P0_3_FUNC, then pin connect is not
+       *       configured here. And user is responsible for configuring them.
        */
-      PINSEL_ConfigPin(0,2,1);
-      PINSEL_ConfigPin(0,3,1);
+#if !defined(P0_2_FUNC) || !defined(P0_3_FUNC)
+
+#ifdef LPC177x_8x
+      PINSEL_ConfigPin(0, 2, 0b001);
+      PINSEL_ConfigPin(0, 3, 0b001);
 #else /* #ifdef LPC177x_8x */
       LPC_PINCON->PINSEL0 &=~(0x0FL << 4);
       LPC_PINCON->PINSEL0 |= (0x01 << 4)|(0x01 << 6); 
 #endif /* #ifdef LPC177x_8x */
+
+#endif /* #if !defined(P0_2_FUNC) || !defined(P0_3_FUNC) */
       LPC_SC->PCONP |= (1 << 3);
       nvicEnableVector(UART0_IRQn,
                        CORTEX_PRIORITY_MASK(LPC17xx_SERIAL_UART0_IRQ_PRIORITY));
+    }
+#endif
+
+#if LPC17xx_SERIAL_USE_UART1
+    if (&SD2 == sdp) {
+      /*
+       * Initialize UART1 default pin connect
+       * P0.15: U1_TXD
+       * P0.16: U1_RXD
+       * Note: If user has defined P0_15_FUNC and P0_16_FUNC, then pin connect is 
+       *       not configured here. And user is responsible for configuring them.
+       */
+#if !defined(P0_15_FUNC) || !defined(P0_16_FUNC)
+
+#ifdef LPC177x_8x
+      PINSEL_ConfigPin(0, 15, 0b001);
+      PINSEL_ConfigPin(0, 16, 0b001);
+#else /* #ifdef LPC177x_8x */
+      LPC_PINCON->PINSEL0 &=~(0x03L << 30);
+      LPC_PINCON->PINSEL0 |= (0x01 << 30);
+      LPC_PINCON->PINSEL1 &=~(0x03L << 0);
+      LPC_PINCON->PINSEL1 |= (0x01 << 0);
+#endif /* #ifdef LPC177x_8x */
+
+#endif /* #if !defined(P0_15_FUNC) || !defined(P0_16_FUNC) */
+      LPC_SC->PCONP |= (1 << 4);
+      nvicEnableVector(UART1_IRQn,
+                       CORTEX_PRIORITY_MASK(LPC17xx_SERIAL_UART1_IRQ_PRIORITY));
+    }
+#endif
+
+#if LPC17xx_SERIAL_USE_UART2
+    if (&SD3 == sdp) {
+      /*
+       * Initialize UART2 default pin connect
+       * P0.10: U0_TXD
+       * P0.11: U0_RXD
+       * Note: If user has defined P0_10_FUNC and P0_11_FUNC, then pin connect is 
+       *       not configured here. And user is responsible for configuring them.
+       */
+#if !defined(P0_10_FUNC) || !defined(P0_11_FUNC)
+
+#ifdef LPC177x_8x
+      PINSEL_ConfigPin(0, 10, 0b001);
+      PINSEL_ConfigPin(0, 11, 0b001);
+#else /* #ifdef LPC177x_8x */
+      LPC_PINCON->PINSEL0 &=~(0x0FL << 20);
+      LPC_PINCON->PINSEL0 |= (0x01 << 20)|(0x01 << 22); 
+#endif /* #ifdef LPC177x_8x */
+
+#endif /* #if !defined(P0_10_FUNC) || !defined(P0_11_FUNC) */
+      LPC_SC->PCONP |= (1 << 24);
+      nvicEnableVector(UART2_IRQn,
+                       CORTEX_PRIORITY_MASK(LPC17xx_SERIAL_UART2_IRQ_PRIORITY));
+    }
+#endif
+
+#if LPC17xx_SERIAL_USE_UART3
+    if (&SD4 == sdp) {
+      /*
+       * Initialize UART3 default pin connect
+       * P0.0: U0_TXD
+       * P0.1: U0_RXD
+       * Note: If user has defined P0_0_FUNC and P0_1_FUNC, then pin connect is not
+       *       configured here. And user is responsible for configuring them.
+       */
+#if !defined(P0_0_FUNC) || !defined(P0_1_FUNC)
+
+#ifdef LPC177x_8x
+      PINSEL_ConfigPin(0, 0, 0b010);
+      PINSEL_ConfigPin(0, 1, 0b010);
+#else /* #ifdef LPC177x_8x */
+      LPC_PINCON->PINSEL0 &=~(0x0FL << 0);
+      LPC_PINCON->PINSEL0 |= (0x01 << 0)|(0x01 << 2); 
+#endif /* #ifdef LPC177x_8x */
+
+#endif /* #if !defined(P0_0_FUNC) || !defined(P0_1_FUNC) */
+      LPC_SC->PCONP |= (1 << 25);
+      nvicEnableVector(UART3_IRQn,
+                       CORTEX_PRIORITY_MASK(LPC17xx_SERIAL_UART3_IRQ_PRIORITY));
     }
 #endif
   }
@@ -299,6 +487,30 @@ void sd_lld_stop(SerialDriver *sdp) {
     if (&SD1 == sdp) {
       LPC_SC->PCONP &= ~(1 << 3);
       nvicDisableVector(UART0_IRQn);
+      return;
+    }
+#endif
+
+#if LPC17xx_SERIAL_USE_UART1
+    if (&SD2 == sdp) {
+      LPC_SC->PCONP &= ~(1 << 4);
+      nvicDisableVector(UART1_IRQn);
+      return;
+    }
+#endif
+
+#if LPC17xx_SERIAL_USE_UART2
+    if (&SD2 == sdp) {
+      LPC_SC->PCONP &= ~(1 << 24);
+      nvicDisableVector(UART2_IRQn);
+      return;
+    }
+#endif
+
+#if LPC17xx_SERIAL_USE_UART3
+    if (&SD2 == sdp) {
+      LPC_SC->PCONP &= ~(1 << 25);
+      nvicDisableVector(UART3_IRQn);
       return;
     }
 #endif
