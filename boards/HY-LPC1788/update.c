@@ -9,7 +9,6 @@
 
 #define MAX_CFG_LEN 		16
 static uint8_t s_buf[MAX_CFG_LEN];
-void memdump(unsigned char *buf, size_t len);
 
 const uint32_t update_cfg[] __attribute__ ((section(".update_cfg"))) = 
 {
@@ -27,19 +26,7 @@ const uint32_t update_cfg[] __attribute__ ((section(".update_cfg"))) =
   0, /* reserved */
 };
 
-void memdump(unsigned char *buf, size_t len)
-{
-  LOG_PRINT("###################################\n");
-  uint32_t i = 0;
-  for (i=0; i<len; ++i) {
-    LOG_PRINT("%02x ", buf[i]);
-    if (i % 16 == 15)
-      LOG_PRINT("\n");
-  }
-  LOG_PRINT("\n");
-}
-
-// buf: ±ØÐë>=16×Ö½Ú 
+// buf: must >=16 bytes
 static int GetMaintainPacket(uint8_t *buf)
 {
   size_t len = MAX_CFG_LEN + 1;

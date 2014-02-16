@@ -191,6 +191,18 @@ void ledOperate(void)
   ledDoubleBlinkBin(0xF, 40);
 }
 
+void memdump(uint8_t *buf, size_t len)
+{
+  LOG_PRINT("###################################\n");
+  uint32_t i = 0;
+  for (i=0; i<len; ++i) {
+    LOG_PRINT("%02x ", buf[i]);
+    if (i % 16 == 15)
+      LOG_PRINT("\n");
+  }
+  LOG_PRINT("\n");
+}
+
 /*
  * Early initialization code.
  * This initialization must be performed just after stack setup and before

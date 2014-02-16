@@ -111,6 +111,7 @@ extern "C" {
   void ledSingleBlinkBin(uint32_t num, uint32_t interval);
   void ledDoubleBlinkBin(uint32_t num, uint32_t interval);
   void LOG_PRINT(const char *fmt, ...);
+  void memdump(uint8_t *buf, size_t len);
 
 #ifdef __cplusplus
 }
