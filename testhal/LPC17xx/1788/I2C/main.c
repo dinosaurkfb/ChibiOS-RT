@@ -116,16 +116,16 @@ int main(void) {
 
   int32_t w_ret = -1;
   int32_t r_ret = -1;
-  EEPROMInit(&I2CD1);
+  EEPROMInit(&I2CD2);
  
   LOG_PRINT("*** Test at24c0x_write_byte\n");
   uint8_t byte = 57;
   uint8_t addr = 0x01;
-  status = at24c0x_write_byte(&I2CD1, addr, byte);
+  status = at24c0x_write_byte(&I2CD2, addr, byte);
   LOG_PRINT("write %d to 0x%02x, return: %d\n", byte++, addr++, status);
-  status = at24c0x_write_byte(&I2CD1, addr, byte);
+  status = at24c0x_write_byte(&I2CD2, addr, byte);
   LOG_PRINT("write %d to 0x%02x, return: %d\n", byte++, addr++, status);
-  status = at24c0x_write_byte(&I2CD1, addr, byte);
+  status = at24c0x_write_byte(&I2CD2, addr, byte);
   LOG_PRINT("write %d to 0x%02x, return: %d\n", byte++, addr++, status);
   /* I2C_Dump(); */
   LOG_PRINT("*** Test at24c0x_write_byte end.\n\n");
@@ -133,17 +133,17 @@ int main(void) {
   LOG_PRINT("*** Test at24c0x_random_read\n");
   uint8_t rbyte = 0;
   addr = 0x01;
-  status = at24c0x_random_read(&I2CD1, addr, &rbyte);
+  status = at24c0x_random_read(&I2CD2, addr, &rbyte);
   LOG_PRINT("random_read from 0x%02x, return: %d\n", addr, status);
   LOG_PRINT("read rbyte: %d\n", rbyte);
   /* I2C_Dump(); */
   LOG_PRINT("*** Test at24c0x_random_read end.\n\n");
 
   LOG_PRINT("*** Test at24c0x_cur_read\n");
-  status = at24c0x_cur_read(&I2CD1, &rbyte);
+  status = at24c0x_cur_read(&I2CD2, &rbyte);
   LOG_PRINT("cur_read, return: %d\n", status);
   LOG_PRINT("read rbyte: %d\n", rbyte);
-  status = at24c0x_cur_read(&I2CD1, &rbyte);
+  status = at24c0x_cur_read(&I2CD2, &rbyte);
   LOG_PRINT("cur_read, return: %d\n", status);
   LOG_PRINT("read rbyte: %d\n", rbyte);
   /* I2C_Dump(); */

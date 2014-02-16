@@ -67,21 +67,21 @@
  * @brief   I2C0 driver identifier.
  */
 #if LPC17xx_I2C_USE_I2C0 || defined(__DOXYGEN__)
-I2CDriver I2CD0;
+I2CDriver I2CD1;
 #endif
 
 /**
  * @brief   I2C1 driver identifier.
  */
 #if LPC17xx_I2C_USE_I2C1 || defined(__DOXYGEN__)
-I2CDriver I2CD1;
+I2CDriver I2CD2;
 #endif
 
 /**
  * @brief   I2C2 driver identifier.
  */
 #if LPC17xx_I2C_USE_I2C2 || defined(__DOXYGEN__)
-I2CDriver I2CD2;
+I2CDriver I2CD3;
 #endif
 
 /*===========================================================================*/
@@ -413,7 +413,7 @@ static void serve_interrupt(I2CDriver *i2cp) {
 CH_IRQ_HANDLER(Vector68) {
 
   CH_IRQ_PROLOGUE();
-  serve_interrupt(&I2CD0);
+  serve_interrupt(&I2CD1);
   CH_IRQ_EPILOGUE();
 }
 #endif
@@ -427,7 +427,7 @@ CH_IRQ_HANDLER(Vector68) {
 CH_IRQ_HANDLER(Vector6C) {
 
   CH_IRQ_PROLOGUE();
-  serve_interrupt(&I2CD1);
+  serve_interrupt(&I2CD2);
   CH_IRQ_EPILOGUE();
 }
 #endif
@@ -441,7 +441,7 @@ CH_IRQ_HANDLER(Vector6C) {
 CH_IRQ_HANDLER(Vector70) {
 
   CH_IRQ_PROLOGUE();
-  serve_interrupt(&I2CD2);
+  serve_interrupt(&I2CD3);
   CH_IRQ_EPILOGUE();
 }
 #endif
@@ -457,21 +457,21 @@ CH_IRQ_HANDLER(Vector70) {
  */
 void i2c_lld_init(void) {
 #if LPC17xx_I2C_USE_I2C0
-  i2cObjectInit(&I2CD0);
-  I2CD0.i2c = (LPC_I2C_TypeDef*) LPC_I2C0;
-  I2CD0.offset = i2c0;
+  i2cObjectInit(&I2CD1);
+  I2CD1.i2c = (LPC_I2C_TypeDef*) LPC_I2C0;
+  I2CD1.offset = i2c0;
 #endif /* LPC17xx_I2C_USE_I2C0 */
 
 #if LPC17xx_I2C_USE_I2C1
-  i2cObjectInit(&I2CD1);
-  I2CD1.i2c = (LPC_I2C_TypeDef*) LPC_I2C1;
-  I2CD1.offset = i2c1;
+  i2cObjectInit(&I2CD2);
+  I2CD2.i2c = (LPC_I2C_TypeDef*) LPC_I2C1;
+  I2CD2.offset = i2c1;
 #endif /* LPC17xx_I2C_USE_I2C1 */
 
 #if LPC17xx_I2C_USE_I2C2
-  i2cObjectInit(&I2CD2);
-  I2CD2.i2c = (LPC_I2C_TypeDef*) LPC_I2C2;
-  I2CD2.offset = i2c2;
+  i2cObjectInit(&I2CD3);
+  I2CD3.i2c = (LPC_I2C_TypeDef*) LPC_I2C2;
+  I2CD3.offset = i2c2;
 #endif /* LPC17xx_I2C_USE_I2C2 */
 }
 
@@ -488,7 +488,7 @@ void i2c_lld_start(I2CDriver *i2cp) {
   if (i2cp->state == I2C_STOP) {
     /* Enables the peripheral.*/
 #if LPC17xx_I2C_USE_I2C0
-    if (&I2CD0 == i2cp) {
+    if (&I2CD1 == i2cp) {
       LPC_SC->PCONP |= (1 << 7);
       /* set PIO0.27 and PIO0.28 to I2C0 SDA and SCL */
 #ifdef LPC177x_8x
@@ -503,7 +503,7 @@ void i2c_lld_start(I2CDriver *i2cp) {
 #endif /* LPC17xx_I2C_USE_I2C0 */
 
 #if LPC17xx_I2C_USE_I2C1
-    if (&I2CD1 == i2cp) {
+    if (&I2CD2 == i2cp) {
       LPC_SC->PCONP |=(1<<19);
 #ifdef LPC177x_8x
       /* set PIO2.14 and PIO2.15 to I2C1 SDA and SCL */
@@ -517,7 +517,7 @@ void i2c_lld_start(I2CDriver *i2cp) {
 #endif /* LPC17xx_I2C_USE_I2C1 */
 
 #if LPC17xx_I2C_USE_I2C2
-    if (&I2CD2 == i2cp) {
+    if (&I2CD3 == i2cp) {
       LPC_SC->PCONP |= (1 << 26);
 #ifdef LPC177x_8x
       /* set PIO2.30 and PIO2.31 to I2C2 SDA and SCL */
@@ -566,21 +566,21 @@ void i2c_lld_stop(I2CDriver *i2cp) {
 
     /* Disables the peripheral.*/
 #if LPC17xx_I2C_USE_I2C0
-    if (&I2CD0 == i2cp) {
+    if (&I2CD1 == i2cp) {
       LPC_SC->PCONP &= ~(1 << 7);
       nvicDisableVector(I2C0_IRQn);
     }
 #endif /* LPC17xx_I2C_USE_I2C0 */
 
 #if LPC17xx_I2C_USE_I2C1
-    if (&I2CD1 == i2cp) {
+    if (&I2CD2 == i2cp) {
       LPC_SC->PCONP &= ~(1 << 19);
       nvicDisableVector(I2C1_IRQn);
     }
 #endif /* LPC17xx_I2C_USE_I2C1 */
 
 #if LPC17xx_I2C_USE_I2C2
-    if (&I2CD2 == i2cp) {
+    if (&I2CD3 == i2cp) {
       LPC_SC->PCONP &= ~(1 << 26);
       nvicDisableVector(I2C2_IRQn);
     }

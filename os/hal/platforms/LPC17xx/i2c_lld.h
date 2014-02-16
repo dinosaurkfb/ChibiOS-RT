@@ -245,13 +245,13 @@ struct I2CDriver {
 
 #if !defined(__DOXYGEN__)
 #if LPC17xx_I2C_USE_I2C0
-extern I2CDriver I2CD0;
-#endif
-#if LPC17xx_I2C_USE_I2C1
 extern I2CDriver I2CD1;
 #endif
-#if LPC17xx_I2C_USE_I2C2
+#if LPC17xx_I2C_USE_I2C1
 extern I2CDriver I2CD2;
+#endif
+#if LPC17xx_I2C_USE_I2C2
+extern I2CDriver I2CD3;
 #endif
 #endif
 
