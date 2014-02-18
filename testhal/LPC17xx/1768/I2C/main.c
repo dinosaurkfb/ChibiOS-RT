@@ -21,8 +21,11 @@
 
 #include "string.h"
 
+#if ENABLE_IAP
 #include "update.h"
-#include "mc24lc0x.h"
+#endif
+#include "devices_lib.h"
+
 /*===========================================================================*/
 /* Configurable settings.                                                    */
 /*===========================================================================*/

@@ -59,6 +59,7 @@ include $(CHIBIOS)/os/hal/platforms/LPC17xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/LPC17xx/port.mk
 include $(CHIBIOS)/os/kernel/kernel.mk
+include $(CHIBIOS)/os/various/devices_lib/devices_lib.mk
 include $(CHIBIOS)/test/test.mk
 
 # Define linker script file here
@@ -72,6 +73,7 @@ CSRC = $(PORTSRC) \
        $(HALSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
+       $(DEVICESLIBSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
        $(CHIBIOS)/os/various/syscalls.c \
        $(CHIBIOS)/os/various/chprintf.c \
@@ -106,6 +108,7 @@ ASMSRC = $(PORTASM)
 
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) \
+         $(DEVICESLIBINC) \
          $(CHIBIOS)/os/various
 
 #

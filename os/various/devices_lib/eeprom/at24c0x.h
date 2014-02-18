@@ -2,6 +2,7 @@
 #define _AT24C0X_H_
 
 #if HAL_USE_I2C
+#if EEPROM_USE_AT24C0X
 
 #if !defined(_FROM_ASM_)
 #ifdef __cplusplus
@@ -19,5 +20,6 @@ extern "C" {
 #endif
 #endif /* _FROM_ASM_ */
 
+#endif /* #if EEPROM_USE_AT24C0X */
 #endif /* #if HAL_USE_I2C */
 #endif /* _AT24C0X_H_ */

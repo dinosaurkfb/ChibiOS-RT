@@ -3,6 +3,7 @@
 #include "string.h"
 
 #if HAL_USE_I2C
+#if EEPROM_USE_AT24C0X
 static I2CDriver *s_i2cp;
 
 //AT24C0x requires a 0x1010xxx as a slave address
@@ -91,4 +92,5 @@ int ReadEEPROM(uint8_t addr, uint8_t *buf, size_t len)
   return ret;
 }
 
+#endif /* #if EEPROM_USE_AT24C0X */
 #endif /* #if HAL_USE_I2C */

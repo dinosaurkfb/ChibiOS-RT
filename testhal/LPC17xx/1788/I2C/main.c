@@ -21,8 +21,10 @@
 
 #include "string.h"
 
+#if ENABLE_IAP
 #include "update.h"
-#include "at24c0x.h"
+#endif
+#include "devices_lib.h"
 /*===========================================================================*/
 /* Configurable settings.                                                    */
 /*===========================================================================*/

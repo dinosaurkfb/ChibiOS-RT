@@ -26,6 +26,7 @@
 #include "hal.h"
 #include "lis302dl.h"
 
+#if HAL_USE_SPI
 /*===========================================================================*/
 /* Driver local definitions.                                                 */
 /*===========================================================================*/
@@ -116,4 +117,5 @@ void lis302dlWriteRegister(SPIDriver *spip, uint8_t reg, uint8_t value) {
   }
 }
 
+#endif /* #if HAL_USE_SPI */
 /** @} */

@@ -88,6 +88,8 @@
 /* LED4 in SDK board connects to P5.1 */
 #define GPIO5_LD9               1
 
+/* This HY-LPC1788 board use AT24C02 */
+#define EEPROM_USE_AT24C0X      TRUE
 
 /**
  * @brief   UART0 LOG_PRINT enable switch.

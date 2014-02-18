@@ -92,6 +92,8 @@
 #define GPIO2_LD5               6
 #define GPIO2_LD4               7
 
+/* This HY-LandTiger board use MC24LC02 */
+#define EEPROM_USE_MC24LC0X     TRUE
 
 /**
  * @brief   UART0 LOG_PRINT enable switch.

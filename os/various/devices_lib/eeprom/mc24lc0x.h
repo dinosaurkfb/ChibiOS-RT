@@ -1,6 +1,7 @@
 #ifndef _MC24LC0X_H_
 #define _MC24LC0X_H_
 #if HAL_USE_I2C
+#if EEPROM_USE_MC24LC0X
 
 #if !defined(_FROM_ASM_)
 #ifdef __cplusplus
@@ -18,5 +19,6 @@ extern "C" {
 #endif
 #endif /* _FROM_ASM_ */
 
+#endif /* #if EEPROM_USE_MC24LC0X */
 #endif /* #if HAL_USE_I2C */
 #endif /* _MC24LC0X_H_ */
