@@ -1103,6 +1103,23 @@ typedef struct                          /* Central Registers                  */
   __I  uint32_t MSR;
 } LPC_CANCR_TypeDef;
 
+typedef struct
+{
+  //Transmit frame info 
+  __IO uint32_t TFI;
+
+  //Transmit Identifier
+  __IO uint32_t TID;
+
+  //Transmit data bytes 1-4 
+  __IO uint32_t TDA;
+
+  //Transmit data bytes 5-8 
+  __IO uint32_t TDB;
+
+} CAN_TxMailBox_TypeDef;
+
+
 /** @brief  Controller Area Network Controller (CAN) register structure definition */
 typedef struct                          /* Controller Registers               */
 {
@@ -1142,41 +1159,8 @@ typedef struct                          /* Controller Registers               */
   ///Offset: 0x0000002C - Received data bytes 5-8
   __IO uint32_t RDB;
 
-  ///Offset: 0x00000030 - Transmit frame info (Tx Buffer 1)
-  __IO uint32_t TFI1;
-
-  ///Offset: 0x00000034 - Transmit Identifier (Tx Buffer 1)
-  __IO uint32_t TID1;
-
-  ///Offset: 0x00000038 - Transmit data bytes 1-4 (Tx Buffer 1)
-  __IO uint32_t TDA1;
-
-  ///Offset: 0x0000003C - Transmit data bytes 5-8 (Tx Buffer 1)
-  __IO uint32_t TDB1;
-
-  ///Offset: 0x00000040 - Transmit frame info (Tx Buffer 2)
-  __IO uint32_t TFI2;
-
-  ///Offset: 0x00000044 - Transmit Identifier (Tx Buffer 2)
-  __IO uint32_t TID2;
-
-  ///Offset: 0x00000048 - Transmit data bytes 1-4 (Tx Buffer 2)
-  __IO uint32_t TDA2;
-
-  ///Offset: 0x0000004C - Transmit data bytes 5-8 (Tx Buffer 2)
-  __IO uint32_t TDB2;
-
-  ///Offset: 0x00000050 - Transmit frame info (Tx Buffer 3)
-  __IO uint32_t TFI3;
-
-  ///Offset: 0x00000054 - Transmit Identifier (Tx Buffer 3)
-  __IO uint32_t TID3;
-
-  ///Offset: 0x00000058 - Transmit data bytes 1-4 (Tx Buffer 3)
-  __IO uint32_t TDA3;
-
-  ///Offset: 0x0000005C - Transmit data bytes 5-8 (Tx Buffer 3)
-  __IO uint32_t TDB3;
+  // Transmit frame info 
+  CAN_TxMailBox_TypeDef sTxMailBox[3];
 } LPC_CAN_TypeDef;
 
 /*------------- General Purpose Direct Memory Access (GPDMA) -----------------*/
