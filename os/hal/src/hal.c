@@ -108,6 +108,9 @@ void halInit(void) {
 #if HAL_USE_SPI || defined(__DOXYGEN__)
   spiInit();
 #endif
+#if HAL_USE_SSP_SPI || defined(__DOXYGEN__)
+  sspspiInit();
+#endif
 #if HAL_USE_UART || defined(__DOXYGEN__)
   uartInit();
 #endif

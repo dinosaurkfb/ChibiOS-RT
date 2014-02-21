@@ -64,6 +64,7 @@
 #include "serial.h"
 #include "sdc.h"
 #include "spi.h"
+#include "ssp_spi.h"
 #include "uart.h"
 #include "usb.h"
 
