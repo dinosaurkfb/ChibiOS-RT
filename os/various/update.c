@@ -2,7 +2,6 @@
 #include "hal.h"
 #include "string.h"
 
-#if ENABLE_IAP
 #include "iap.h"
 #include "update.h"
 #include "ver.h"
@@ -12,27 +11,31 @@ static uint8_t s_buf[MAX_CFG_LEN];
 
 const uint32_t update_cfg[] __attribute__ ((section(".update_cfg"))) = 
 {
+#if ENABLE_IAP
   UPDATE_TYPE,
+#endif /* #if ENABLE_IAP */
   CHIP_TYPE,
   DEVICE_ID,
   CODE_VERSION,
   0,
-  COM0_BAUD_RATE,
+  UPDATE_BAUD_RATE,
   ISP_BAUD_RATE,
   OSC_FREQ_KHZ,
+#if ENABLE_IAP
   IAP_SEC_FLAG_ADDR,
   IAP_SEC_USER_ADDR,
+#endif /* #if ENABLE_IAP */
   0, /* reserved */
   0, /* reserved */
 };
 
-// buf: must >=16 bytes
+// buf length: must >=16 bytes 
 static int GetMaintainPacket(uint8_t *buf)
 {
   size_t len = MAX_CFG_LEN + 1;
   uint32_t i;
   uint8_t sum;
-  BaseSequentialStream  *bssp = (BaseSequentialStream  *)&SD1;
+  BaseSequentialStream  *bssp = (BaseSequentialStream  *)&updateSD;
 
   /* Wait for a valid head and len */
   chSequentialStreamRead(bssp, buf, 2);
@@ -68,17 +71,19 @@ static int GetMaintainPacket(uint8_t *buf)
   return len;
 }
 
-void uart0_scan(void) {
+static WORKING_AREA(waUARTUpdaterThread, 128);
+
+static void UARTUpdateWait(void) {
   static uint32_t buf0[5];
   /* To make sure "chip, devid, ver" are on 4 byte boundary. */
   uint8_t *buf = (uint8_t *)buf0 + 1;
-  BaseSequentialStream  *bssp = (BaseSequentialStream  *)&SD1;
+  BaseSequentialStream  *bssp = (BaseSequentialStream  *)&updateSD;
 
-  while(1) {
+  while (TRUE) {
     int len = GetMaintainPacket(buf);
     if(len<=0)
       break;
-    //LOG_PRINT("start update ...\n");
+    /* LOG_PRINT("start update ...\n"); */
 		
     int cmd = buf[2];
     switch(cmd) {
@@ -120,4 +125,63 @@ void uart0_scan(void) {
   }
 }
 
+static msg_t UARTUpdaterThread(void *arg) {
+  (void)arg;
+  chRegSetThreadName("updater");
+
+  /* Work loop.*/
+  while (TRUE) {
+    /* Waiting for a update packet.*/
+    UARTUpdateWait();
+  }
+  return RDY_OK;
+}
+
+#if ENABLE_IAP
+
+static WORKING_AREA(waCANUpdaterThread, 128);
+
+static void CANUpdateWait(void) {
+  while (TRUE) {
+    chThdSleepMilliseconds(100);
+  }
+}
+
+static msg_t CANUpdaterThread(void *arg) {
+  (void)arg;
+  /* LOG_PRINT("*** Thread updater.\n"); */
+  chRegSetThreadName("updater");
+
+  /* Work loop.*/
+  while (TRUE) {
+    /* Waiting for a update packet.*/
+    CANUpdateWait();
+  }
+  return RDY_OK;
+}
+
 #endif /* #if ENABLE_IAP */
+
+
+/**
+ * @brief   Start update thread.
+ * @note    If ENABLE_IAP switch is opened in chconf.h, then CAN IAP thread 
+ *          is also started. Otherwise only UART update thread is started.
+ * @note    Update threads will block if no update packet is received.
+ *
+ * @api
+ */
+void updateThreadStart(void) {
+  chThdCreateStatic(waUARTUpdaterThread, sizeof waUARTUpdaterThread,
+		    NORMALPRIO - 20, UARTUpdaterThread, NULL);
+
+#if ENABLE_IAP
+  chThdCreateStatic(waCANUpdaterThread, sizeof waCANUpdaterThread,
+		    NORMALPRIO - 20, CANUpdaterThread, NULL);
+
+#endif /* #if ENABLE_IAP */
+
+  LOG_PRINT("*** Update Thread started.\n");
+}
+
+

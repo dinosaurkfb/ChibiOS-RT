@@ -26,21 +26,6 @@
 /* Configurable settings.                                                    */
 /*===========================================================================*/
 #define NO_TEST  TRUE
-#if ENABLE_IAP
-static WORKING_AREA(waUpdaterThread, 128);
-static msg_t UpdaterThread(void *arg) {
-  (void)arg;
-  LOG_PRINT("*** Thread updater.\n");
-  chRegSetThreadName("updater");
-
-  /* Work loop.*/
-  while (TRUE) {
-    /* Waiting for a update packet.*/
-    uart0_scan();
-  }
-  return RDY_OK;
-}
-#endif /* #if ENABLE_IAP */
 
 #define BUF_SIZE  16
 uint8_t w_buf[BUF_SIZE];
@@ -146,11 +131,7 @@ int main(void) {
   uint32_t s = 0;
 #endif
 
-#ifdef ENABLE_IAP
-  chThdCreateStatic(waUpdaterThread, sizeof waUpdaterThread,
-		    NORMALPRIO - 20, UpdaterThread, NULL);
-  chThdSleepMilliseconds(20);
-#endif /* #ifdef ENABLE_IAP */
+  updateThreadStart();
 
   sdStart(&SD2, &uart1_config);
   sdStart(&SD3, &uart2_config);

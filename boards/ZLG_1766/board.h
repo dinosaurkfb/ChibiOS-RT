@@ -80,6 +80,9 @@
 #define GPIO2_LED3              2
 #define GPIO2_LED4              3
 
+#define CHIP_TYPE                   1766
+#define UPDATE_BAUD_RATE            115200
+#define ISP_BAUD_RATE               115200
 
 /**
  * @brief   UART0 LOG_PRINT enable switch.

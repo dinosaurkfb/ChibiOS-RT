@@ -214,7 +214,7 @@ void __early_init(void) {
 
 /** @brief Driver default configuration.*/
 static const SerialConfig uart0_config = {
-  115200,
+  UPDATE_BAUD_RATE,
   LCR_WL8 | LCR_STOP1 | LCR_NOPARITY,
   FCR_TRIGGER0
 };

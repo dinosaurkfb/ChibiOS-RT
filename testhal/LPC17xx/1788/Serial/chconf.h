@@ -28,7 +28,7 @@
 #ifndef _CHCONF_H_
 #define _CHCONF_H_
 
-#define ENABLE_IAP                          TRUE
+#define ENABLE_IAP                      False
 
 #if ENABLE_IAP
 /**

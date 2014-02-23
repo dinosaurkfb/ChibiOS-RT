@@ -21,9 +21,7 @@
 
 #include "string.h"
 
-#if ENABLE_IAP
 #include "update.h"
-#endif
 #include "devices_lib.h"
 
 /*===========================================================================*/
@@ -31,21 +29,6 @@
 /*===========================================================================*/
 #define NO_TEST  TRUE
 
-#if ENABLE_IAP
-static WORKING_AREA(waUpdaterThread, 128);
-static msg_t UpdaterThread(void *arg) {
-  (void)arg;
-  LOG_PRINT("*** Thread updater.\n");
-  chRegSetThreadName("updater");
-
-  /* Work loop.*/
-  while (TRUE) {
-    /* Waiting for a update packet.*/
-    uart0_scan();
-  }
-  return RDY_OK;
-}
-#endif /* #if ENABLE_IAP */
 
 /* buffers depth */
 #define RX_DEPTH 256
@@ -111,11 +94,7 @@ int main(void) {
   uint32_t s = 0;
 #endif
 
-#if ENABLE_IAP
-  chThdCreateStatic(waUpdaterThread, sizeof waUpdaterThread,
-		    NORMALPRIO - 20, UpdaterThread, NULL);
-  chThdSleepMilliseconds(50);
-#endif /* #if ENABLE_IAP */
+  updateThreadStart();
 
   int32_t i = 0;
 
@@ -198,7 +177,6 @@ int main(void) {
       LOG_PRINT("*** Alive %u seconds.\n", s);
     }
 #endif
-
   }
   return 0;
 }

@@ -31,65 +31,68 @@
 /*
  * Board frequencies.
  */
-#define MAINOSCCLK              12000000
+#define MAINOSCCLK                  12000000
 
 /*
  * GPIO 0 initial setup.
  */
-#define VAL_GPIO0DIR            0x00000000
-#define VAL_GPIO0DATA           0x00000000
+#define VAL_GPIO0DIR                0x00000000
+#define VAL_GPIO0DATA               0x00000000
 
 /*
  * GPIO 1 initial setup.
  */
-#define VAL_GPIO1DIR            PAL_PORT_BIT(GPIO1_LD7)
-#define VAL_GPIO1DATA           PAL_PORT_BIT(GPIO1_LD7)
+#define VAL_GPIO1DIR                PAL_PORT_BIT(GPIO1_LD7)
+#define VAL_GPIO1DATA               PAL_PORT_BIT(GPIO1_LD7)
 
 /*
  * GPIO 2 initial setup.
  */
-#define VAL_GPIO2DIR            PAL_PORT_BIT(GPIO2_LD2)
-#define VAL_GPIO2DATA           PAL_PORT_BIT(GPIO2_LD2)
+#define VAL_GPIO2DIR                PAL_PORT_BIT(GPIO2_LD2)
+#define VAL_GPIO2DATA               PAL_PORT_BIT(GPIO2_LD2)
 /*
  * GPIO 3 initial setup.
  */
-#define VAL_GPIO3DIR            0x00000000
-#define VAL_GPIO3DATA           0x00000000
+#define VAL_GPIO3DIR                0x00000000
+#define VAL_GPIO3DATA               0x00000000
 
 /*
  * GPIO 4 initial setup.
  */
-#define VAL_GPIO4DIR            0x00000000
-#define VAL_GPIO4DATA           0x00000000
+#define VAL_GPIO4DIR                0x00000000
+#define VAL_GPIO4DATA               0x00000000
 
 /*
  * GPIO 5 initial setup.
  */
-#define VAL_GPIO5DIR            PAL_PORT_BIT(GPIO5_LD8)    |               \
-                                PAL_PORT_BIT(GPIO5_LD9)
-#define VAL_GPIO5DATA           PAL_PORT_BIT(GPIO5_LD8)    |               \
-                                PAL_PORT_BIT(GPIO5_LD9)
+#define VAL_GPIO5DIR                PAL_PORT_BIT(GPIO5_LD8)    |	\
+                                    PAL_PORT_BIT(GPIO5_LD9)
+#define VAL_GPIO5DATA               PAL_PORT_BIT(GPIO5_LD8)    |	\
+                                    PAL_PORT_BIT(GPIO5_LD9)
 /*
  * Pin definitions.
  */
 /* Note: Both LD2 in the core board and LD6 in the SDK board connect to P2.21 */
 /* LD2 in the core board connects to P2.21 */
-#define GPIO2_LD2               21
+#define GPIO2_LD2                   21
 
 /* LED1 in SDK board connects to P2.21 */
-#define GPIO2_LD6               21
+#define GPIO2_LD6                   21
 
 /* LED2 in SDK board connects to P1.13 */
-#define GPIO1_LD7               13
+#define GPIO1_LD7                   13
 
 /* LED3 in SDK board connects to P5.0 */
-#define GPIO5_LD8               0
+#define GPIO5_LD8                   0
 
 /* LED4 in SDK board connects to P5.1 */
-#define GPIO5_LD9               1
+#define GPIO5_LD9                   1
 
+#define CHIP_TYPE                   1788
+#define UPDATE_BAUD_RATE            115200
+#define ISP_BAUD_RATE               57600
 /* This HY-LPC1788 board use AT24C02 */
-#define EEPROM_USE_AT24C0X      TRUE
+#define EEPROM_USE_AT24C0X          TRUE
 
 /**
  * @brief   UART0 LOG_PRINT enable switch.
@@ -97,7 +100,7 @@
  * @note    The default is @p TRUE .
  */
 #if !defined(LOG_PRINT_USE_UART0) || defined(__DOXYGEN__)
-#define LOG_PRINT_USE_UART0              TRUE
+#define LOG_PRINT_USE_UART0         TRUE
 #endif
 
 

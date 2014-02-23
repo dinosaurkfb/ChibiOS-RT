@@ -92,8 +92,11 @@
 #define GPIO2_LD5               6
 #define GPIO2_LD4               7
 
+#define CHIP_TYPE                   1768
+#define UPDATE_BAUD_RATE            115200
+#define ISP_BAUD_RATE               115200
 /* This HY-LandTiger board use MC24LC02 */
-#define EEPROM_USE_MC24LC0X     TRUE
+#define EEPROM_USE_MC24LC0X         TRUE
 
 /**
  * @brief   UART0 LOG_PRINT enable switch.

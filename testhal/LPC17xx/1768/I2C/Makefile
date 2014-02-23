@@ -63,7 +63,7 @@ include $(CHIBIOS)/os/various/devices_lib/devices_lib.mk
 include $(CHIBIOS)/test/test.mk
 
 # Define linker script file here
-LDSCRIPT= $(PORTLD)/LPC1768_iap.ld
+LDSCRIPT= $(PORTLD)/LPC1768_isp.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -77,6 +77,7 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
        $(CHIBIOS)/os/various/syscalls.c \
        $(CHIBIOS)/os/various/chprintf.c \
+       ${CHIBIOS}/os/various/update.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global

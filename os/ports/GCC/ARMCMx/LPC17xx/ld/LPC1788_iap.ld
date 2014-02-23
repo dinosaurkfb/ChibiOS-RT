@@ -19,7 +19,10 @@
 */
 
 /*
- * LPC1768 memory setup.
+ * LPC1788 memory setup, with automatic-ISP support and IAP support.
+ * Note: The .update_cfg section is used by the automatic-ISP mechanism.
+ * Note: Flash memory now starts from 0x00008000 which is required by IAP
+ *       boot.
  */
 __main_stack_size__     = 0x0200;
 __process_stack_size__  = 0x0200;
