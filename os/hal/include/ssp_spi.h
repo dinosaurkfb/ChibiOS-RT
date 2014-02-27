@@ -26,7 +26,7 @@
 */
 
 /**
- * @file    spi.h
+ * @file    ssp_spi.h
  * @brief   SSP_SPI Driver macros and structures.
  *
  * @addtogroup SSP_SPI
@@ -59,7 +59,7 @@
 #endif
 
 /**
- * @brief   Enables the @p spiAcquireBus() and @p spiReleaseBus() APIs.
+ * @brief   Enables the @p sspspiAcquireBus() and @p sspspiReleaseBus() APIs.
  * @note    Disabling this option saves both code and data space.
  */
 #if !defined(SSP_SPI_USE_MUTUAL_EXCLUSION) || defined(__DOXYGEN__)
@@ -88,9 +88,9 @@ typedef enum {
   SSP_SPI_READY = 2,                    /**< Ready.                             */
   SSP_SPI_ACTIVE = 3,                   /**< Exchanging data.                   */
   SSP_SPI_COMPLETE = 4                  /**< Asynchronous operation complete.   */
-} spistate_t;
+} sspspistate_t;
 
-#include "spi_lld.h"
+#include "ssp_spi_lld.h"
 
 /*===========================================================================*/
 /* Driver macros.                                                            */
@@ -103,12 +103,12 @@ typedef enum {
 /**
  * @brief   Asserts the slave select signal and prepares for transfers.
  *
- * @param[in] spip      pointer to the @p SSPSPIDriver object
+ * @param[in] sspspip      pointer to the @p SSPSPIDriver object
  *
  * @iclass
  */
-#define spiSelectI(spip) {                                                  \
-  spi_lld_select(spip);                                                     \
+#define sspspiSelectI(spip) {                                                  \
+  ssp_spi_lld_select(spip);                                                     \
 }
 
 /**
@@ -119,16 +119,16 @@ typedef enum {
  *
  * @iclass
  */
-#define spiUnselectI(spip) {                                                \
-  spi_lld_unselect(spip);                                                   \
+#define sspspiUnselectI(spip) {                                                \
+  ssp_spi_lld_unselect(spip);                                                   \
 }
 
 /**
  * @brief   Ignores data on the SSP_SPI bus.
  * @details This asynchronous function starts the transmission of a series of
  *          idle words on the SSP_SPI bus and ignores the received data.
- * @pre     A slave must have been selected using @p spiSelect() or
- *          @p spiSelectI().
+ * @pre     A slave must have been selected using @p sspspiSelect() or
+ *          @p sspspiSelectI().
  * @post    At the end of the operation the configured callback is invoked.
  *
  * @param[in] spip      pointer to the @p SSPSPIDriver object
@@ -136,17 +136,17 @@ typedef enum {
  *
  * @iclass
  */
-#define spiStartIgnoreI(spip, n) {                                          \
+#define sspspiStartIgnoreI(spip, n) {                                          \
   (spip)->state = SSP_SPI_ACTIVE;                                               \
-  spi_lld_ignore(spip, n);                                                  \
+  ssp_spi_lld_ignore(spip, n);                                                  \
 }
 
 /**
  * @brief   Exchanges data on the SSP_SPI bus.
  * @details This asynchronous function starts a simultaneous transmit/receive
  *          operation.
- * @pre     A slave must have been selected using @p spiSelect() or
- *          @p spiSelectI().
+ * @pre     A slave must have been selected using @p sspspiSelect() or
+ *          @p sspspiSelectI().
  * @post    At the end of the operation the configured callback is invoked.
  * @note    The buffers are organized as uint8_t arrays for data sizes below
  *          or equal to 8 bits else it is organized as uint16_t arrays.
@@ -158,16 +158,16 @@ typedef enum {
  *
  * @iclass
  */
-#define spiStartExchangeI(spip, n, txbuf, rxbuf) {                          \
+#define sspspiStartExchangeI(spip, n, txbuf, rxbuf) {                          \
   (spip)->state = SSP_SPI_ACTIVE;                                               \
-  spi_lld_exchange(spip, n, txbuf, rxbuf);                                  \
+  ssp_spi_lld_exchange(spip, n, txbuf, rxbuf);                                  \
 }
 
 /**
  * @brief   Sends data over the SSP_SPI bus.
  * @details This asynchronous function starts a transmit operation.
- * @pre     A slave must have been selected using @p spiSelect() or
- *          @p spiSelectI().
+ * @pre     A slave must have been selected using @p sspspiSelect() or
+ *          @p sspspiSelectI().
  * @post    At the end of the operation the configured callback is invoked.
  * @note    The buffers are organized as uint8_t arrays for data sizes below
  *          or equal to 8 bits else it is organized as uint16_t arrays.
@@ -178,16 +178,16 @@ typedef enum {
  *
  * @iclass
  */
-#define spiStartSendI(spip, n, txbuf) {                                     \
+#define sspspiStartSendI(spip, n, txbuf) {                                     \
   (spip)->state = SSP_SPI_ACTIVE;                                               \
-  spi_lld_send(spip, n, txbuf);                                             \
+  ssp_spi_lld_send(spip, n, txbuf);                                             \
 }
 
 /**
  * @brief   Receives data from the SSP_SPI bus.
  * @details This asynchronous function starts a receive operation.
- * @pre     A slave must have been selected using @p spiSelect() or
- *          @p spiSelectI().
+ * @pre     A slave must have been selected using @p sspspiSelect() or
+ *          @p sspspiSelectI().
  * @post    At the end of the operation the configured callback is invoked.
  * @note    The buffers are organized as uint8_t arrays for data sizes below
  *          or equal to 8 bits else it is organized as uint16_t arrays.
@@ -198,9 +198,9 @@ typedef enum {
  *
  * @iclass
  */
-#define spiStartReceiveI(spip, n, rxbuf) {                                  \
+#define sspspiStartReceiveI(spip, n, rxbuf) {                                  \
   (spip)->state = SSP_SPI_ACTIVE;                                               \
-  spi_lld_receive(spip, n, rxbuf);                                          \
+  ssp_spi_lld_receive(spip, n, rxbuf);                                          \
 }
 
 /**
@@ -216,7 +216,7 @@ typedef enum {
  * @param[in] frame     the data frame to send over the SSP_SPI bus
  * @return              The received data frame from the SSP_SPI bus.
  */
-#define spiPolledExchange(spip, frame) spi_lld_polled_exchange(spip, frame)
+#define sspspiPolledExchange(spip, frame) ssp_spi_lld_polled_exchange(spip, frame)
 /** @} */
 
 /**
@@ -301,7 +301,7 @@ extern "C" {
 #endif
   void sspspiInit(void);
   void sspspiObjectInit(SSPSPIDriver *spip);
-  void sspspiStart(SSPSPIDriver *spip, const SPIConfig *config);
+  void sspspiStart(SSPSPIDriver *spip, const SSPSPIConfig *config);
   void sspspiStop(SSPSPIDriver *spip);
   void sspspiSelect(SSPSPIDriver *spip);
   void sspspiUnselect(SSPSPIDriver *spip);
@@ -310,16 +310,16 @@ extern "C" {
                         const void *txbuf, void *rxbuf);
   void sspspiStartSend(SSPSPIDriver *spip, size_t n, const void *txbuf);
   void sspspiStartReceive(SSPSPIDriver *spip, size_t n, void *rxbuf);
-#if SPI_USE_WAIT
+#if SSP_SPI_USE_WAIT
   void sspspiIgnore(SSPSPIDriver *spip, size_t n);
   void sspspiExchange(SSPSPIDriver *spip, size_t n, const void *txbuf, void *rxbuf);
   void sspspiSend(SSPSPIDriver *spip, size_t n, const void *txbuf);
   void sspspiReceive(SSPSPIDriver *spip, size_t n, void *rxbuf);
-#endif /* SPI_USE_WAIT */
-#if SPI_USE_MUTUAL_EXCLUSION
+#endif /* SSP_SPI_USE_WAIT */
+#if SSP_SPI_USE_MUTUAL_EXCLUSION
   void sspspiAcquireBus(SSPSPIDriver *spip);
   void sspspiReleaseBus(SSPSPIDriver *spip);
-#endif /* SPI_USE_MUTUAL_EXCLUSION */
+#endif /* SSP_SPI_USE_MUTUAL_EXCLUSION */
 #ifdef __cplusplus
 }
 #endif

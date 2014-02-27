@@ -44,6 +44,7 @@ SPIDriver SPID1;
 /* Driver local functions.                                                   */
 /*===========================================================================*/
 
+static volatile bool s_is_8bit;
 /**
  * @brief   Preloads the transmit FIFO.
  *
@@ -53,19 +54,35 @@ static void spi_load_txdata(SPIDriver *spip) {
 
   LPC_SPI_TypeDef *spi = spip->spi;
   if (spip->txptr != NULL) {
-    if ((spi->SPCR & SPCR_BIT_ENABLE)  || (!(spi->SPCR & SPCR_BIT_8))){
-      const uint16_t *p = spip->txptr;
-      spi->SPDR = *p++;
-      spip->txptr = p;
-    } else {
+	if(s_is_8bit) {
       const uint8_t *p = spip->txptr;
       spi->SPDR = *p++;
-      spip->txptr = p;
+	  spip->txcnt = spip->txcnt - 1;
+	  if(spip->txcnt > 0)
+		  spip->txptr = p;
+	  else
+		  spip->txptr = NULL; 
+    } else {
+      const uint16_t *p = spip->txptr;
+      spi->SPDR = *p++;
+	  spip->txcnt = spip->txcnt - 1;
+	  if(spip->txcnt > 0)
+		  spip->txptr = p;
+	  else
+		  spip->txptr = NULL; 
     }
   } else {
     spi->SPDR = 0xffff;
   }
-  spip->txcnt--;
+
+}
+
+static int i = 0;
+int getTestNum(void) {
+	return i;
+}
+void clsTestNum(void) {
+	i=0;
 }
 
 
@@ -78,58 +95,57 @@ static void spi_serve_interrupt(SPIDriver *spip) {
 
   LPC_SPI_TypeDef *spi = spip->spi;
 
+  i++;
   /*
    * 数据读写溢出处理
    */
   if (spi->SPSR & (SPSR_ROVR | SPSR_WCOL)) {
+//	LOG_PRINT("Test Send. 2.16 int.\n"); 
     /* The overflow condition should never happen becausepriority is given
        to receive but a hook macro is provided anyway...*/
     LPC17xx_SPI_ERROR_HOOK(spip);
   }
 
-  /*
-   * 数据传输完成,启动下次传输任务
-   */
-  if (spi->SPSR & SPSR_SPIF) {
-	  /* 
-	   * 发送模式
-	   */
-	 if(spi->SPCR & SPCR_MSTR) {
-		spi_load_txdata(spip); 
-		if (spip->txcnt == 0) { 
-			/*
-			 * 清除中断 
-			 */
-			spi->SPINT = SPINT_CLS;
-		}
-	 }else{
-	  /* 
-	   * 接收模式
-	   */
-	   if (spip->rxptr != NULL) { 
-		  if ((spi->SPCR & SPCR_BIT_ENABLE)  || (!(spi->SPCR & SPCR_BIT_8))){ 
-			uint16_t *p = spip->rxptr; 
-			*p++ = spi->SPDR; 
-			spip->rxptr = p;
-		  }else { 
-			uint8_t *p = spip->rxptr; 
-			*p++ = spi->SPDR; 
-			spip->rxptr = p;
-		  }
-	   }else{ 
-		  (void)spi->SPDR;
-	   } 
-	   if (--spip->rxcnt == 0) { 
-		 chDbgAssert(spip->txcnt == 0,
-                  "spi_serve_interrupt(), #1", "counter out of synch"); 
-		 /* Stops the IRQ sources.*/ 
-		 spi->SPINT = SPINT_CLS; 
-		 /* Portable SPI ISR code defined in the high level driver, note, it is a macro.*/ 
-		 _spi_isr_code(spip); 
-		 return;
-    	}
-	 }
+  if ((spip->rxptr == NULL) && (spip->txptr == NULL)) { 
+      (void)spi->SPDR;
   }
+  /* 数据传输完成,启动下次传输任务 */
+  if (spip->txptr != NULL) {
+	  spi_load_txdata(spip); 
+      (void)spi->SPDR;
+  } 
+  /* 
+   * 接收模式
+   */
+  spip->rxcnt = spip->rxcnt - 1;
+  if (spip->rxptr != NULL) {
+	 if(s_is_8bit) {
+		uint8_t *p = spip->rxptr; 
+		*p++ = spi->SPDR; 
+		if (spip->rxcnt > 0) { 
+		   spip->rxptr = p;
+		   spi->SPDR = 0xffff;
+		}else{
+		  spip->rxptr = NULL;
+		}
+	  }else { 
+		uint16_t *p = spip->rxptr; 
+		*p++ = spi->SPDR; 
+		if (spip->rxcnt > 0) { 
+		   spip->rxptr = p;
+		   spi->SPDR = 0xffff;
+		}else{
+		  spip->rxptr = NULL;
+		}
+	  }
+  } 
+
+  if (spip->rxcnt <= 0) { 
+	  LEDON(1); 
+	  spi->SPINT = SPINT_CLS; 
+	  _spi_isr_code(spip); 
+  }
+  spi->SPINT = SPINT_CLS;
 }
 
 /*===========================================================================*/
@@ -142,7 +158,7 @@ static void spi_serve_interrupt(SPIDriver *spip) {
  *
  * @isr
  */
-CH_IRQ_HANDLER(VectorF4) {
+CH_IRQ_HANDLER(Vector74) {
 
   CH_IRQ_PROLOGUE();
 
@@ -163,14 +179,8 @@ CH_IRQ_HANDLER(VectorF4) {
  */
 void spi_lld_init(void) {
   spiObjectInit(&SPID1);
-  LPC_PINCON->PINSEL0 |= (0x03ul << 30); 
-  LPC_PINCON->PINSEL1 &= ~(0x03 << 0); 
-
-  /* 设置SPI的片选引脚*/ 
-  LPC_GPIO0->FIODIR   |=  SPI_CS;                        
-
-  /* 设置P0.17、P0.18 */
-  LPC_PINCON->PINSEL1 |=  (0x03 << 2) | (0x03 << 4);    
+  SPID1.spi = LPC_SPI;
+  s_is_8bit = true;
 }
 
 /**
@@ -181,10 +191,27 @@ void spi_lld_init(void) {
  * @notapi
  */
 void spi_lld_start(SPIDriver *spip) {
+  LPC_SC->PCONP |= (1UL << 8);
+
+  LPC_PINCON->PINSEL0 |= (0x03ul << 30); 
+  LPC_PINCON->PINSEL1 &= ~(0x03 << 0); 
+
+  /* 设置SPI的片选引脚*/ 
+  LPC_GPIO0->FIODIR   |=  SPI_CS;                        
+
+  /* 设置P0.17、P0.18 */
+  LPC_PINCON->PINSEL1 |=  (0x03 << 2) | (0x03 << 4);    
+
   spip->spi->SPCR = spip->config->spcr;
   spip->spi->SPCCR = spip->config->spccr;
+  spip->spi->SPINT = SPINT_CLS; 
+  if ((spip->spi->SPCR & SPCR_BIT_ENABLE)  && (!(spip->spi->SPCR & SPCR_BIT_8))){
+	  s_is_8bit = false;
+  }else{
+	  s_is_8bit = true;
+  } 
+  LOG_PRINT("spi_lld_start SPCR=0x%x s_is_8bit=%d\n", spip->spi->SPCR, s_is_8bit); 
 
-  LPC_SC->PCONP |= (1UL << 8);
   nvicEnableVector(SPI_IRQn,
                        CORTEX_PRIORITY_MASK(LPC17xx_SPI_IRQ_PRIORITY));
 
@@ -207,6 +234,11 @@ void spi_lld_stop(SPIDriver *spip) {
   nvicDisableVector(SPI_IRQn);
 }
 
+static void delay(int v) {
+	volatile int ts = v;
+	while(ts--);
+}
+
 /**
  * @brief   Asserts the slave select signal and prepares for transfers.
  *
@@ -217,6 +249,7 @@ void spi_lld_stop(SPIDriver *spip) {
 void spi_lld_select(SPIDriver *spip) {
 
   palClearPad(spip->config->spiport, spip->config->spiad);
+  delay(100);
 }
 
 /**
@@ -230,6 +263,7 @@ void spi_lld_select(SPIDriver *spip) {
 void spi_lld_unselect(SPIDriver *spip) {
 
   palSetPad(spip->config->spiport, spip->config->spiad);
+  delay(100);
 }
 
 
@@ -273,7 +307,6 @@ void spi_lld_exchange(SPIDriver *spip, size_t n,
   spip->rxcnt = spip->txcnt = n;
 
   spi_load_txdata(spip);
-  spip->spi->SPCR = SPCR_SPIE;
 }
 
 /**
@@ -325,8 +358,7 @@ void spi_lld_receive(SPIDriver *spip, size_t n, void *rxbuf) {
 uint16_t spi_lld_polled_exchange(SPIDriver *spip, uint16_t frame) {
 
   spip->spi->SPDR = frame;
-  while ((spip->spi->SPSR & SPSR_SPIF) == 0)
-    ;
+  while ((spip->spi->SPSR & SPSR_SPIF) == 0);
   return (uint16_t)spip->spi->SPDR;
 }
 

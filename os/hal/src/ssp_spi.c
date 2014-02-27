@@ -104,7 +104,7 @@ void sspspiObjectInit(SSPSPIDriver *spip) {
  *
  * @api
  */
-void sspspiStart(SSPSPIDriver *spip, const SPIConfig *config) {
+void sspspiStart(SSPSPIDriver *spip, const SSPSPIConfig *config) {
 
   chDbgCheck((spip != NULL) && (config != NULL), "spiStart");
 
@@ -148,11 +148,11 @@ void sspspiStop(SSPSPIDriver *spip) {
  */
 void sspspiSelect(SSPSPIDriver *spip) {
 
-  chDbgCheck(spip != NULL, "spiSelect");
+  chDbgCheck(spip != NULL, "sspspiSelect");
 
   chSysLock();
-  chDbgAssert(spip->state == SSP_SPI_READY, "spiSelect(), #1", "not ready");
-  spiSelectI(spip);
+  chDbgAssert(spip->state == SSP_SPI_READY, "sspspiSelect(), #1", "not ready");
+  sspspiSelectI(spip);
   chSysUnlock();
 }
 
@@ -170,7 +170,7 @@ void sspspiUnselect(SSPSPIDriver *spip) {
 
   chSysLock();
   chDbgAssert(spip->state == SSP_SPI_READY, "spiUnselect(), #1", "not ready");
-  spiUnselectI(spip);
+  sspspiUnselectI(spip);
   chSysUnlock();
 }
 
@@ -179,7 +179,7 @@ void sspspiUnselect(SSPSPIDriver *spip) {
  * @details This asynchronous function starts the transmission of a series of
  *          idle words on the SPI bus and ignores the received data.
  * @pre     A slave must have been selected using @p spiSelect() or
- *          @p spiSelectI().
+ *          @p sspspiSelectI().
  * @post    At the end of the operation the configured callback is invoked.
  *
  * @param[in] spip      pointer to the @p SSPSPIDriver object
@@ -193,7 +193,7 @@ void sspspiStartIgnore(SSPSPIDriver *spip, size_t n) {
 
   chSysLock();
   chDbgAssert(spip->state == SSP_SPI_READY, "spiStartIgnore(), #1", "not ready");
-  spiStartIgnoreI(spip, n);
+  sspspiStartIgnoreI(spip, n);
   chSysUnlock();
 }
 
@@ -201,8 +201,8 @@ void sspspiStartIgnore(SSPSPIDriver *spip, size_t n) {
  * @brief   Exchanges data on the SPI bus.
  * @details This asynchronous function starts a simultaneous transmit/receive
  *          operation.
- * @pre     A slave must have been selected using @p spiSelect() or
- *          @p spiSelectI().
+ * @pre     A slave must have been selected using @p sspspiSelect() or
+ *          @p sspspiSelectI().
  * @post    At the end of the operation the configured callback is invoked.
  * @note    The buffers are organized as uint8_t arrays for data sizes below
  *          or equal to 8 bits else it is organized as uint16_t arrays.
@@ -222,15 +222,15 @@ void sspspiStartExchange(SSPSPIDriver *spip, size_t n,
 
   chSysLock();
   chDbgAssert(spip->state == SSP_SPI_READY, "spiStartExchange(), #1", "not ready");
-  spiStartExchangeI(spip, n, txbuf, rxbuf);
+  sspspiStartExchangeI(spip, n, txbuf, rxbuf);
   chSysUnlock();
 }
 
 /**
  * @brief   Sends data over the SPI bus.
  * @details This asynchronous function starts a transmit operation.
- * @pre     A slave must have been selected using @p spiSelect() or
- *          @p spiSelectI().
+ * @pre     A slave must have been selected using @p sspspiSelect() or
+ *          @p sspspiSelectI().
  * @post    At the end of the operation the configured callback is invoked.
  * @note    The buffers are organized as uint8_t arrays for data sizes below
  *          or equal to 8 bits else it is organized as uint16_t arrays.
@@ -248,15 +248,15 @@ void sspspiStartSend(SSPSPIDriver *spip, size_t n, const void *txbuf) {
 
   chSysLock();
   chDbgAssert(spip->state == SSP_SPI_READY, "spiStartSend(), #1", "not ready");
-  spiStartSendI(spip, n, txbuf);
+  sspspiStartSendI(spip, n, txbuf);
   chSysUnlock();
 }
 
 /**
  * @brief   Receives data from the SPI bus.
  * @details This asynchronous function starts a receive operation.
- * @pre     A slave must have been selected using @p spiSelect() or
- *          @p spiSelectI().
+ * @pre     A slave must have been selected using @p sspspiSelect() or
+ *          @p sspspiSelectI().
  * @post    At the end of the operation the configured callback is invoked.
  * @note    The buffers are organized as uint8_t arrays for data sizes below
  *          or equal to 8 bits else it is organized as uint16_t arrays.
@@ -274,7 +274,7 @@ void sspspiStartReceive(SSPSPIDriver *spip, size_t n, void *rxbuf) {
 
   chSysLock();
   chDbgAssert(spip->state == SSP_SPI_READY, "spiStartReceive(), #1", "not ready");
-  spiStartReceiveI(spip, n, rxbuf);
+  sspspiStartReceiveI(spip, n, rxbuf);
   chSysUnlock();
 }
 
@@ -300,7 +300,7 @@ void sspspiIgnore(SSPSPIDriver *spip, size_t n) {
   chSysLock();
   chDbgAssert(spip->state == SSP_SPI_READY, "spiIgnore(), #1", "not ready");
   chDbgAssert(spip->config->end_cb == NULL, "spiIgnore(), #2", "has callback");
-  spiStartIgnoreI(spip, n);
+  sspspiStartIgnoreI(spip, n);
   _spi_wait_s(spip);
   chSysUnlock();
 }
@@ -333,7 +333,7 @@ void sspspiExchange(SSPSPIDriver *spip, size_t n,
   chDbgAssert(spip->state == SSP_SPI_READY, "spiExchange(), #1", "not ready");
   chDbgAssert(spip->config->end_cb == NULL,
               "spiExchange(), #2", "has callback");
-  spiStartExchangeI(spip, n, txbuf, rxbuf);
+  sspspiStartExchangeI(spip, n, txbuf, rxbuf);
   _spi_wait_s(spip);
   chSysUnlock();
 }
@@ -361,7 +361,7 @@ void sspspiSend(SSPSPIDriver *spip, size_t n, const void *txbuf) {
   chSysLock();
   chDbgAssert(spip->state == SSP_SPI_READY, "spiSend(), #1", "not ready");
   chDbgAssert(spip->config->end_cb == NULL, "spiSend(), #2", "has callback");
-  spiStartSendI(spip, n, txbuf);
+  sspspiStartSendI(spip, n, txbuf);
   _spi_wait_s(spip);
   chSysUnlock();
 }
@@ -391,7 +391,7 @@ void sspspiReceive(SSPSPIDriver *spip, size_t n, void *rxbuf) {
   chDbgAssert(spip->state == SSP_SPI_READY, "spiReceive(), #1", "not ready");
   chDbgAssert(spip->config->end_cb == NULL,
               "spiReceive(), #2", "has callback");
-  spiStartReceiveI(spip, n, rxbuf);
+  sspspiStartReceiveI(spip, n, rxbuf);
   _spi_wait_s(spip);
   chSysUnlock();
 }

@@ -38,15 +38,15 @@
 #define SPCR_MSTR				(0x0001<<5)
 #define SPCR_LSBF				(0x0001<<6)
 #define SPCR_SPIE 				(0x0001<<7)
-#define SPCR_BIT_8				(0x0008<<7)
-#define SPCR_BIT_9				(0x0009<<7)
-#define SPCR_BIT_10				(0x000A<<7)
-#define SPCR_BIT_11				(0x000B<<7)
-#define SPCR_BIT_12				(0x000C<<7)
-#define SPCR_BIT_13				(0x000D<<7)
-#define SPCR_BIT_14				(0x000E<<7)
-#define SPCR_BIT_15				(0x000F<<7)
-#define SPCR_BIT_16				(0x0000<<7)
+#define SPCR_BIT_8				(0x0008<<8)
+#define SPCR_BIT_9				(0x0009<<8)
+#define SPCR_BIT_10				(0x000A<<8)
+#define SPCR_BIT_11				(0x000B<<8)
+#define SPCR_BIT_12				(0x000C<<8)
+#define SPCR_BIT_13				(0x000D<<8)
+#define SPCR_BIT_14				(0x000E<<8)
+#define SPCR_BIT_15				(0x000F<<8)
+#define SPCR_BIT_16				(0x0000<<8)
 
 #define SPSR_ABRT 				0x08
 #define SPSR_MODF 				0x10
@@ -167,14 +167,14 @@ typedef struct {
   uint16_t              spiad;
 
   /**
-   * @brief SPI SPCCR initialization data.
-   */
-  uint16_t              spccr;
-
-  /**
    * @brief SPI SPCR initialization data.
    */
   uint32_t              spcr;
+
+  /**
+   * @brief SPI SPCCR initialization data.
+   */
+  uint16_t              spccr;
 } SPIConfig;
 
 /**
