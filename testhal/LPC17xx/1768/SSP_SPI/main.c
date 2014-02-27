@@ -19,90 +19,83 @@
 
 #include "ch.h"
 #include "hal.h"
+#include "update.h"
 
 #include <string.h>
 #include "lpc_types.h"
 #include "SST25VF016B.h"
 #include "FlashDriver.h"
 
-/* Private variables ---------------------------------------------------------*/
 uint8_t  ReadBuffer[256];
 uint8_t  WriteBuffer[256];
 
-/*******************************************************************************
-* Function Name  : main
-* Description    : Main program
-* Input          : None
-* Output         : None
-* Return         : None
-* Attention		 : None
-*******************************************************************************/
+
 int main(void)
-{
-    uint16_t  i;
-    uint32_t  ChipID = 0;	
+{ 
+	uint16_t  i; 
+	halInit(); 
+	chSysInit();
 
-  halInit();
-  chSysInit();
+	LOG_PRINT("SSP SPI Test Running.\n");
+    updateThreadStart();
 
-  print_info();
 	
 	SPI_FLASH_Init();
-	SPI_FLASH_Test();
+
+	uint32_t  ChipID = 0;
+  	SSTF016B_RdID(Jedec_ID, &ChipID);                                     
+	                                                                     
+    ChipID &= ~0xff000000;						                        
+	if (ChipID != 0x4125BF) {										
+		LOG_PRINT(" Err: SSTF016B ID =0x%x", ChipID);
+       while(1) {
+		chThdSleepMilliseconds(1000); 
+		}
+    }else{
+		LOG_PRINT("Read id OK: SSTF016B ID =0x%x.\n", ChipID);
+	}
 
 
-	df_write_open(0);
-	df_read_open(0);
-	SSTF016B_Erase(0, 0);
+	SSTF016B_Erase(0, 1);
 	
 	for( i = 0; i < 256; i++ )
 	{
 	    WriteBuffer[i] = i;
 	}
 
+	df_write_open(0);
 	df_write( WriteBuffer, sizeof(WriteBuffer) );
+	df_write_close(); 
 
+	LOG_PRINT("HY-LPC1788-SDK SPI Flash Write Date:.\n");
+	memdump(WriteBuffer, sizeof(WriteBuffer));
+
+
+	df_read_open(0);
 	df_read( ReadBuffer, sizeof(ReadBuffer) );
 
+	LOG_PRINT("HY-LPC1788-SDK SPI Flash Read Date:.\n");
+	memdump(WriteBuffer, sizeof(WriteBuffer));
+
 	/* Matching data */
-	if( memcmp( WriteBuffer, ReadBuffer, sizeof(WriteBuffer) ) == 0 )  
+	if( memcmp(WriteBuffer, ReadBuffer, sizeof(WriteBuffer) ) == 0 )  
 	{
-		LOG_PRINT("HY-LPC1788-SDK SPI Flash SST25VF016B OK");
+		LOG_PRINT("HY-LPC1788-SDK SPI Flash SST25VF016B OK.\n");
 	}
 	else
 	{
-		LOG_PRINT("HY-LPC1788-SDK SPI Flash SST25VF016B False");
+		LOG_PRINT("HY-LPC1788-SDK SPI Flash SST25VF016B False.\n");
+		for(i=0; i<256; i++ ) {
+			if(ReadBuffer[i] != WriteBuffer[i]) {
+				LOG_PRINT("%03d %03d %03d.\n", i, ReadBuffer[i], WriteBuffer[i]);
+			}
+		}
 	} 
+
 	while (TRUE) { 
 		chThdSleepMilliseconds(1000); 
 		LOG_PRINT("*** Alive seconds.\n" ); 
 	}
 }
 
-void print_info() {
-	/*
-   * Test procedure.
-   */
-  LOG_PRINT("\n*** ChibiOS/RT IRQ-STORM long duration test\n");
-  LOG_PRINT("***\n");
-  LOG_PRINT("*** Kernel:       %u\n", CH_KERNEL_VERSION);
-#ifdef CH_COMPILER_NAME
-  LOG_PRINT("*** Compiler:     %u\n", CH_COMPILER_NAME);
-#endif
-  LOG_PRINT("*** Architecture: %u\n", CH_ARCHITECTURE_NAME);
-#ifdef CH_CORE_VARIANT_NAME
-  LOG_PRINT("*** Core Variant: %u\n", CH_CORE_VARIANT_NAME);
-#endif
-#ifdef CH_PORT_INFO
-  LOG_PRINT("*** Port Info:    %u\n", CH_PORT_INFO);
-#endif
-#ifdef PLATFORM_NAME
-  LOG_PRINT("*** Platform:     %u\n", PLATFORM_NAME);
-#endif
-#ifdef BOARD_NAME
-  LOG_PRINT("*** Test Board:   %u\n", BOARD_NAME);
-#endif
-  LOG_PRINT("***\n");
-  LOG_PRINT("*** System Clock: %u\n", LPC17xx_CCLK);
-}
 

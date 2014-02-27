@@ -28,6 +28,16 @@
 #ifndef _CHCONF_H_
 #define _CHCONF_H_
 
+#define ENABLE_IAP                      FALSE
+
+#if ENABLE_IAP
+/**
+ * @brief   NVIC VTOR initialization expression.
+ */
+#define CORTEX_VTOR_INIT                0x00008000
+
+#endif /* #if ENABLE_IAP */
+
 /*===========================================================================*/
 /**
  * @name Kernel parameters and options

@@ -20,19 +20,12 @@
 ********************************************************************************************************/
 
 /* Includes ------------------------------------------------------------------*/
+#include "hal.h"
 #include "SST25VF016B.h"
 
-#if 1
-#define __SSP_SPI__  	1
-#endif
 
-#if __SSP_SPI__
 #define SPI_FLASH_CS_LOW()    	 sspspiSelect(&SPID1)
 #define SPI_FLASH_CS_HIGH()  	 sspspiUnselect(&SPID1)
-#else
-#define SPI_FLASH_CS_LOW()       LPC_GPIO0->FIOPIN &= ~(1 << 16 )
-#define SPI_FLASH_CS_HIGH()      LPC_GPIO0->FIOPIN |= (1 << 16 )
-#endif
 
 
 
@@ -40,7 +33,7 @@ static SSPSPIConfig spicfg = {
   NULL,
   LPC_GPIO0,
   16,
-  0,
+  7,
   0x40 
 };
 
@@ -70,33 +63,6 @@ uint32_t LPC17xx_SPI_GetSpeed (uint8_t speed)
 }
 
 /*******************************************************************************
-* Function Name  : LPC17xx_SPI_SendRecvByte
-* Description    : Send one byte then recv one byte of response
-* Input          : - byte_s: byte_s
-* Output         : None
-* Return         : None
-* Attention		 : None
-*******************************************************************************/
-uint8_t LPC17xx_SPI_SendRecvByte (uint8_t byte_s)
-{
-#if __SSP_SPI__
-	sspspiSend(&SPID1,1, &byte_s);    /* Polled method.       */
-#else
-	uint8_t byte_r;
-
-	while ( LPC_SSP0->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-	LPC_SSP0->DR = byte_s;
-
-	while ( LPC_SSP0->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-
-	while( !( LPC_SSP0->SR & ( 1 << SSPSR_RNE ) ) );	/* Wait untill the Rx FIFO is not empty */
-	byte_r = LPC_SSP0->DR;
-
-	return byte_r;                                      /* Return received value */
-#endif
-}
-
-/*******************************************************************************
 * Function Name  : SPI_FLASH_Init
 * Description    : 初始化控制SSI的管脚
 * Input          : None
@@ -106,68 +72,41 @@ uint8_t LPC17xx_SPI_SendRecvByte (uint8_t byte_s)
 *******************************************************************************/
 void SPI_FLASH_Init(void)
 {
-
-	volatile uint32_t dummy;
-
-	dummy = dummy;                                   /* avoid warning */
-
-#if __SSP_SPI__
 	uint32_t speed = LPC17xx_SPI_GetSpeed(SPI_SPEED_12MHz);
+	LOG_PRINT("speed=0x%x", speed);
 	spicfg.cpsr = speed;
 	sspspiStart(&SPID1, &spicfg);
-#else
-    LPC_SC->PCONP |= (1 << 21);                      /* Enable power to SSPI0 block */
 
-    LPC_GPIO0->FIODIR |=  (1<<16);                   /* P0.16 CS is output */
-
-	/* P0.15 SCK, P0.17 MISO, P0.18 MOSI are SSP pins. */
-	LPC_PINCON->PINSEL0 &= ~( (2UL<<30) ); 			 /* P0.15  cleared */
-	LPC_PINCON->PINSEL1 &= ~( (2<<2) | (2<<4) );     /* P0.17, P0.18  cleared */
-
-	LPC_PINCON->PINSEL0 |=  ( 2UL<<30);              /* P0.15 SCK0 */
-	LPC_PINCON->PINSEL1 |=  ( 2<<2) | (2<<4) ;       /* P0.17 MISO0   P0.18 MOSI0 */
-
-	/* PCLK_SSP0=CCLK */
-	LPC_SC->PCLKSEL1 &= ~(3<<10);                    /* PCLKSP0 = CCLK/4 (18MHz) */
-	LPC_SC->PCLKSEL1 |=  (1<<10);                    /* PCLKSP0 = CCLK   (72MHz) */
-
-	LPC_SSP0->CR0  = ( 7<<0 );                       /* 8Bit, CPOL=0, CPHA=0         */
-	LPC_SSP0->CR1  = ( 1<<1 );                       /* SSP0 enable, master          */
-					 
-	LPC17xx_SPI_SetSpeed (SPI_SPEED_12MHz);
-
-	/* wait for busy gone */
-	while( LPC_SSP0->SR & ( 1 << SSPSR_BSY ) );
-
-#endif
+#if 0
+	volatile uint32_t dummy;
+	dummy = dummy;                                   /* avoid warning */
 	/* drain SPI RX FIFO */
 	while( LPC_SSP0->SR & ( 1 << SSPSR_RNE ) )
 	{
 		dummy = LPC_SSP0->DR;
 	}
+#endif
 }
 
 
 /*****************************************************************************
-* Function Name  : Flash_ReadWriteByte
+* Function Name  : Flash_WriteByte
 * Description    : 通过硬件SPI发送一个字节到SST25VF016B
 * Input          : - data: 发送的数据
 * Output         : None
 * Return         : SST25VF016B 返回的数据
 * Attention		 : None
 *******************************************************************************/
-uint8_t Flash_ReadWriteByte(uint8_t data)		
+void Flash_WriteByte(uint8_t data)		
 {
-   return LPC17xx_SPI_SendRecvByte( data );                                
+	sspspiSend(&SPID1,1, &data);    /* Polled method.       */
 }
 
-uint8_t Flash_ReadByte(uint8_t data)		
+uint8_t Flash_ReadByte(void)		
 {
-#if __SSP_SPI__
-	sspspiReceive(&SPID1, 1, &data); 
-#else
-   return LPC17xx_SPI_SendRecvByte( data );                                
-#endif
+	uint8_t r_buf;
+	sspspiReceive(&SPID1, 1, &r_buf); 
+	return r_buf;
 }
 
 
@@ -189,18 +128,18 @@ uint8_t SSTF016B_RD(uint32_t Dst, uint8_t* RcvBufPt ,uint32_t NByte)
 	if ((Dst+NByte > MAX_ADDR)||(NByte == 0))	return (ERROR);	 /*	检查入口参数 */
 	
     SPI_FLASH_CS_LOW();
-	Flash_ReadWriteByte(0x0B); 						/* 发送读命令 */
-	Flash_ReadWriteByte(((Dst & 0xFFFFFF) >> 16));	/* 发送地址信息:该地址由3个字节组成	*/
-	Flash_ReadWriteByte(((Dst & 0xFFFF) >> 8));
-	Flash_ReadWriteByte(Dst & 0xFF);
-	Flash_ReadWriteByte(0xFF);						/* 发送一个哑字节以读取数据	*/
-#if 0
+	Flash_WriteByte(0x0B); 						/* 发送读命令 */
+	Flash_WriteByte(((Dst & 0xFFFFFF) >> 16));	/* 发送地址信息:该地址由3个字节组成	*/
+	Flash_WriteByte(((Dst & 0xFFFF) >> 8));
+	Flash_WriteByte(Dst & 0xFF);
+	Flash_WriteByte(0xFF);						/* 发送一个哑字节以读取数据	*/
+#if __SSP_SPI__
+	sspspiReceive(&SPID1, NByte, RcvBufPt); 
+#else
 	for (i = 0; i < NByte; i++)		
 	{
-       RcvBufPt[i] = Flash_ReadByte(0xFF);		
+       RcvBufPt[i] = Flash_ReadByte();		
 	}
-#else
-	sspspiReceive(&SPID1, NByte, RcvBufPt); 
 #endif
     SPI_FLASH_CS_HIGH();
 	return (ENABLE);
@@ -222,15 +161,10 @@ uint8_t SSTF016B_RdID(idtype IDType,uint32_t* RcvbufPt)
 	{
 		SPI_FLASH_CS_LOW();	
 				
-		Flash_ReadWriteByte(0x9F);		 		         /* 发送读JEDEC ID命令(9Fh)	*/
-    	        
-        temp = (temp | Flash_ReadWriteByte(0x00)) << 8;  /* 接收数据 */
-		temp = (temp | Flash_ReadWriteByte(0x00)) << 8;	
-        temp = (temp | Flash_ReadWriteByte(0x00)); 	     /* 在本例中,temp的值应为0xBF2541 */
-
+		Flash_WriteByte(0x9F);		 		         /* 发送读JEDEC ID命令(9Fh)	*/
+		sspspiReceive(&SPID1, 3, RcvbufPt); 
         SPI_FLASH_CS_HIGH();
 
-		*RcvbufPt = temp;
 		return (ENABLE);
 	}
 	
@@ -238,11 +172,11 @@ uint8_t SSTF016B_RdID(idtype IDType,uint32_t* RcvbufPt)
 	{
 	    SPI_FLASH_CS_LOW();	
 		
-		Flash_ReadWriteByte(0x90);				/* 发送读ID命令 (90h or ABh) */
-    	Flash_ReadWriteByte(0x00);				/* 发送地址	*/
-		Flash_ReadWriteByte(0x00);				/* 发送地址	*/
-		Flash_ReadWriteByte(IDType);		    /* 发送地址 - 不是00H就是01H */
-		temp = Flash_ReadByte(0x00);	    /* 接收获取的数据字节 */
+		Flash_WriteByte(0x90);				/* 发送读ID命令 (90h or ABh) */
+    	Flash_WriteByte(0x00);				/* 发送地址	*/
+		Flash_WriteByte(0x00);				/* 发送地址	*/
+		Flash_WriteByte(IDType);		    /* 发送地址 - 不是00H就是01H */
+		temp = Flash_ReadByte();	    /* 接收获取的数据字节 */
 
         SPI_FLASH_CS_HIGH();
 
@@ -277,38 +211,38 @@ uint8_t SSTF016B_WR(uint32_t Dst, uint8_t* SndbufPt,uint32_t NByte)
 
 	
 	SPI_FLASH_CS_LOW();				 
-	Flash_ReadWriteByte(0x05);							    /* 发送读状态寄存器命令	*/
-	temp = Flash_ReadByte(0xFF);					    /* 保存读得的状态寄存器值 */
+	Flash_WriteByte(0x05);							    /* 发送读状态寄存器命令	*/
+	temp = Flash_ReadByte();					    /* 保存读得的状态寄存器值 */
 	SPI_FLASH_CS_HIGH();								
 
 	SPI_FLASH_CS_LOW();				
-	Flash_ReadWriteByte(0x50);							    /* 使状态寄存器可写	*/
+	Flash_WriteByte(0x50);							    /* 使状态寄存器可写	*/
 	SPI_FLASH_CS_HIGH();	
 		
 	SPI_FLASH_CS_LOW();				
-	Flash_ReadWriteByte(0x01);							    /* 发送写状态寄存器指令 */
-	Flash_ReadWriteByte(0);								    /* 清0BPx位，使Flash芯片全区可写 */
+	Flash_WriteByte(0x01);							    /* 发送写状态寄存器指令 */
+	Flash_WriteByte(0);								    /* 清0BPx位，使Flash芯片全区可写 */
 	SPI_FLASH_CS_HIGH();			
 	
 	for(i = 0; i < NByte; i++)
 	{
 		SPI_FLASH_CS_LOW();				
-		Flash_ReadWriteByte(0x06);						    /* 发送写使能命令 */
+		Flash_WriteByte(0x06);						    /* 发送写使能命令 */
 		SPI_FLASH_CS_HIGH();			
 
 		SPI_FLASH_CS_LOW();					
-		Flash_ReadWriteByte(0x02); 						    /* 发送字节数据烧写命令	*/
-		Flash_ReadWriteByte((((Dst+i) & 0xFFFFFF) >> 16));  /* 发送3个字节的地址信息 */
-		Flash_ReadWriteByte((((Dst+i) & 0xFFFF) >> 8));
-		Flash_ReadWriteByte((Dst+i) & 0xFF);
-		Flash_ReadWriteByte(SndbufPt[i]);					/* 发送被烧写的数据	*/
+		Flash_WriteByte(0x02); 						    /* 发送字节数据烧写命令	*/
+		Flash_WriteByte((((Dst+i) & 0xFFFFFF) >> 16));  /* 发送3个字节的地址信息 */
+		Flash_WriteByte((((Dst+i) & 0xFFFF) >> 8));
+		Flash_WriteByte((Dst+i) & 0xFF);
+		Flash_WriteByte(SndbufPt[i]);					/* 发送被烧写的数据	*/
 		SPI_FLASH_CS_HIGH();			
 
 		do
 		{
 		  	SPI_FLASH_CS_LOW();					 
-			Flash_ReadWriteByte(0x05);					    /* 发送读状态寄存器命令 */
-			StatRgVal = Flash_ReadByte(0xFF);			/* 保存读得的状态寄存器值 */
+			Flash_WriteByte(0x05);					    /* 发送读状态寄存器命令 */
+			StatRgVal = Flash_ReadByte();			/* 保存读得的状态寄存器值 */
 			SPI_FLASH_CS_HIGH();							
   		}
 		while (StatRgVal == 0x03 );					          /* 一直等待，直到芯片空闲	*/
@@ -316,16 +250,16 @@ uint8_t SSTF016B_WR(uint32_t Dst, uint8_t* SndbufPt,uint32_t NByte)
 	}
 
 	SPI_FLASH_CS_LOW();					
-	Flash_ReadWriteByte(0x06);							    /* 发送写使能命令 */
+	Flash_WriteByte(0x06);							    /* 发送写使能命令 */
 	SPI_FLASH_CS_HIGH();			
 
 	SPI_FLASH_CS_LOW();					
-	Flash_ReadWriteByte(0x50);							    /* 使状态寄存器可写	*/
+	Flash_WriteByte(0x50);							    /* 使状态寄存器可写	*/
 	SPI_FLASH_CS_HIGH();
 			
 	SPI_FLASH_CS_LOW();				
-	Flash_ReadWriteByte(0x01);							    /* 发送写状态寄存器指令 */
-	Flash_ReadWriteByte(temp);						     	/* 恢复状态寄存器设置信息 */
+	Flash_WriteByte(0x01);							    /* 发送写状态寄存器指令 */
+	Flash_WriteByte(temp);						     	/* 恢复状态寄存器设置信息 */
 	SPI_FLASH_CS_HIGH();
 
 	return (ENABLE);		
@@ -355,21 +289,21 @@ uint8_t SSTF016B_Erase(uint32_t sec1, uint32_t sec2)
 	}
    	
    	SPI_FLASH_CS_LOW();			 
-	Flash_ReadWriteByte(0x05);								/* 发送读状态寄存器命令	*/
-	temp1 = Flash_ReadByte(0x00);						/* 保存读得的状态寄存器值 */
+	Flash_WriteByte(0x05);								/* 发送读状态寄存器命令	*/
+	temp1 = Flash_ReadByte();						/* 保存读得的状态寄存器值 */
 	SPI_FLASH_CS_HIGH();								
 
 	SPI_FLASH_CS_LOW();			
-	Flash_ReadWriteByte(0x50);								/* 使状态寄存器可写	*/
+	Flash_WriteByte(0x50);								/* 使状态寄存器可写	*/
 	SPI_FLASH_CS_HIGH();			
 
 	SPI_FLASH_CS_LOW();								  	
-	Flash_ReadWriteByte(0x01);								/* 发送写状态寄存器指令	*/
-	Flash_ReadWriteByte(0);									/* 清0BPx位，使Flash芯片全区可写 */
+	Flash_WriteByte(0x01);								/* 发送写状态寄存器指令	*/
+	Flash_WriteByte(0);									/* 清0BPx位，使Flash芯片全区可写 */
 	SPI_FLASH_CS_HIGH();
 	
 	SPI_FLASH_CS_LOW();			
-	Flash_ReadWriteByte(0x06);								/* 发送写使能命令 */
+	Flash_WriteByte(0x06);								/* 发送写使能命令 */
 	SPI_FLASH_CS_HIGH();			
 
 	/* 如果用户输入的起始扇区号大于终止扇区号，则在内部作出调整 */
@@ -383,21 +317,21 @@ uint8_t SSTF016B_Erase(uint32_t sec1, uint32_t sec2)
 	if (sec1 == sec2)	
 	{
 		SPI_FLASH_CS_LOW();				
-		Flash_ReadWriteByte(0x06);						    /* 发送写使能命令 */
+		Flash_WriteByte(0x06);						    /* 发送写使能命令 */
 		SPI_FLASH_CS_HIGH();			
 
 	    SecnHdAddr = SEC_SIZE * sec1;				          /* 计算扇区的起始地址	*/
 	    SPI_FLASH_CS_LOW();	
-    	Flash_ReadWriteByte(0x20);							  /* 发送扇区擦除指令 */
-	    Flash_ReadWriteByte(((SecnHdAddr & 0xFFFFFF) >> 16)); /* 发送3个字节的地址信息 */
-   		Flash_ReadWriteByte(((SecnHdAddr & 0xFFFF) >> 8));
-   		Flash_ReadWriteByte(SecnHdAddr & 0xFF);
+    	Flash_WriteByte(0x20);							  /* 发送扇区擦除指令 */
+	    Flash_WriteByte(((SecnHdAddr & 0xFFFFFF) >> 16)); /* 发送3个字节的地址信息 */
+   		Flash_WriteByte(((SecnHdAddr & 0xFFFF) >> 8));
+   		Flash_WriteByte(SecnHdAddr & 0xFF);
   		SPI_FLASH_CS_HIGH();			
 		do
 		{
 		  	SPI_FLASH_CS_LOW();			 
-			Flash_ReadWriteByte(0x05);						  /* 发送读状态寄存器命令 */
-			StatRgVal = Flash_ReadByte(0x00);			  /* 保存读得的状态寄存器值	*/
+			Flash_WriteByte(0x05);						  /* 发送读状态寄存器命令 */
+			StatRgVal = Flash_ReadByte();			  /* 保存读得的状态寄存器值	*/
 			SPI_FLASH_CS_HIGH();								
   		}
 		while (StatRgVal == 0x03);				              /* 一直等待，直到芯片空闲	*/
@@ -409,13 +343,13 @@ uint8_t SSTF016B_Erase(uint32_t sec1, uint32_t sec2)
 	if (sec2 - sec1 == SEC_MAX)	
 	{
 		SPI_FLASH_CS_LOW();			
-		Flash_ReadWriteByte(0x60);							  /* 发送芯片擦除指令(60h or C7h) */
+		Flash_WriteByte(0x60);							  /* 发送芯片擦除指令(60h or C7h) */
 		SPI_FLASH_CS_HIGH();			
 		do
 		{
 		  	SPI_FLASH_CS_LOW();			 
-			Flash_ReadWriteByte(0x05);						  /* 发送读状态寄存器命令 */
-			StatRgVal = Flash_ReadByte(0x00);			  /* 保存读得的状态寄存器值	*/
+			Flash_WriteByte(0x05);						  /* 发送读状态寄存器命令 */
+			StatRgVal = Flash_ReadByte();			  /* 保存读得的状态寄存器值	*/
 			SPI_FLASH_CS_HIGH();								
   		}
 		while (StatRgVal == 0x03);					          /* 一直等待，直到芯片空闲	*/
@@ -429,21 +363,21 @@ uint8_t SSTF016B_Erase(uint32_t sec1, uint32_t sec2)
 	while (no_SecsToEr >= 8)
 	{
 		SPI_FLASH_CS_LOW();				
-		Flash_ReadWriteByte(0x06);						    /* 发送写使能命令 */
+		Flash_WriteByte(0x06);						    /* 发送写使能命令 */
 		SPI_FLASH_CS_HIGH();			
 
 	    SecnHdAddr = SEC_SIZE * CurSecToEr;			          /* 计算扇区的起始地址 */
 	    SPI_FLASH_CS_LOW();	
-	    Flash_ReadWriteByte(0x52);							  /* 发送32KB擦除指令 */
-	    Flash_ReadWriteByte(((SecnHdAddr & 0xFFFFFF) >> 16)); /* 发送3个字节的地址信息 */
-   		Flash_ReadWriteByte(((SecnHdAddr & 0xFFFF) >> 8));
-   		Flash_ReadWriteByte(SecnHdAddr & 0xFF);
+	    Flash_WriteByte(0x52);							  /* 发送32KB擦除指令 */
+	    Flash_WriteByte(((SecnHdAddr & 0xFFFFFF) >> 16)); /* 发送3个字节的地址信息 */
+   		Flash_WriteByte(((SecnHdAddr & 0xFFFF) >> 8));
+   		Flash_WriteByte(SecnHdAddr & 0xFF);
   		SPI_FLASH_CS_HIGH();			
 		do
 		{
 		  	SPI_FLASH_CS_LOW();			 
-			Flash_ReadWriteByte(0x05);						  /* 发送读状态寄存器命令 */
-			StatRgVal = Flash_ReadByte(0x00);			  /* 保存读得的状态寄存器值	*/
+			Flash_WriteByte(0x05);						  /* 发送读状态寄存器命令 */
+			StatRgVal = Flash_ReadByte();			  /* 保存读得的状态寄存器值	*/
 			SPI_FLASH_CS_HIGH();								
   		}
 		while (StatRgVal == 0x03);					          /* 一直等待，直到芯片空闲	*/
@@ -454,21 +388,21 @@ uint8_t SSTF016B_Erase(uint32_t sec1, uint32_t sec2)
 	while (no_SecsToEr >= 1)
 	{
 		SPI_FLASH_CS_LOW();				
-		Flash_ReadWriteByte(0x06);						    /* 发送写使能命令 */
+		Flash_WriteByte(0x06);						    /* 发送写使能命令 */
 		SPI_FLASH_CS_HIGH();			
 
 	    SecnHdAddr = SEC_SIZE * CurSecToEr;			          /* 计算扇区的起始地址 */
 	    SPI_FLASH_CS_LOW();	
-    	Flash_ReadWriteByte(0x20);							  /* 发送扇区擦除指令 */
-	    Flash_ReadWriteByte(((SecnHdAddr & 0xFFFFFF) >> 16)); /* 发送3个字节的地址信息 */
-   		Flash_ReadWriteByte(((SecnHdAddr & 0xFFFF) >> 8));
-   		Flash_ReadWriteByte(SecnHdAddr & 0xFF);
+    	Flash_WriteByte(0x20);							  /* 发送扇区擦除指令 */
+	    Flash_WriteByte(((SecnHdAddr & 0xFFFFFF) >> 16)); /* 发送3个字节的地址信息 */
+   		Flash_WriteByte(((SecnHdAddr & 0xFFFF) >> 8));
+   		Flash_WriteByte(SecnHdAddr & 0xFF);
   		SPI_FLASH_CS_HIGH();			
 		do
 		{
 		  	SPI_FLASH_CS_LOW();			 
-			Flash_ReadWriteByte(0x05);						  /* 发送读状态寄存器命令 */
-			StatRgVal = Flash_ReadByte(0x00);			  /* 保存读得的状态寄存器值	*/
+			Flash_WriteByte(0x05);						  /* 发送读状态寄存器命令 */
+			StatRgVal = Flash_ReadByte();			  /* 保存读得的状态寄存器值	*/
 			SPI_FLASH_CS_HIGH();								
   		}
 		while (StatRgVal == 0x03);					          /* 一直等待，直到芯片空闲 */
@@ -477,15 +411,15 @@ uint8_t SSTF016B_Erase(uint32_t sec1, uint32_t sec2)
 	}
     /* 擦除结束,恢复状态寄存器信息 */
 	SPI_FLASH_CS_LOW();			
-	Flash_ReadWriteByte(0x06);								  /* 发送写使能命令 */
+	Flash_WriteByte(0x06);								  /* 发送写使能命令 */
 	SPI_FLASH_CS_HIGH();			
 
 	SPI_FLASH_CS_LOW();			
-	Flash_ReadWriteByte(0x50);								  /* 使状态寄存器可写 */
+	Flash_WriteByte(0x50);								  /* 使状态寄存器可写 */
 	SPI_FLASH_CS_HIGH();			
 	SPI_FLASH_CS_LOW();			
-	Flash_ReadWriteByte(0x01);								  /* 发送写状态寄存器指令 */
-	Flash_ReadWriteByte(temp1);								  /* 恢复状态寄存器设置信息 */
+	Flash_WriteByte(0x01);								  /* 发送写状态寄存器指令 */
+	Flash_WriteByte(temp1);								  /* 恢复状态寄存器设置信息 */
 	SPI_FLASH_CS_HIGH();    
 	return (ENABLE);
 }
@@ -506,7 +440,8 @@ void SPI_FLASH_Test(void)
 	                                                                        查看ChipID的值是否0xBF2541  */
     ChipID &= ~0xff000000;						                        /*  仅保留低24位数据            */
 	if (ChipID != 0xBF2541) {											/*  ID不正确进入死循环          */
-           while(1);
+           while(1) {
+		   }
     }
 }
 
