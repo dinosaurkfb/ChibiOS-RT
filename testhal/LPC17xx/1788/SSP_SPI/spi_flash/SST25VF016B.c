@@ -24,16 +24,16 @@
 #include "SST25VF016B.h"
 
 
-#define SPI_FLASH_CS_LOW()    	 sspspiSelect(&SPID1)
-#define SPI_FLASH_CS_HIGH()  	 sspspiUnselect(&SPID1)
+#define SPI_FLASH_CS_LOW()    	 sspspiSelect(&SPID2)
+#define SPI_FLASH_CS_HIGH()  	 sspspiUnselect(&SPID2)
 
 
 
 static SSPSPIConfig spicfg = {
   NULL,
-  LPC_GPIO0,
-  16,
-  7,
+  LPC_GPIO5,
+  4,
+  CR0_DSS8BIT | CR0_FRFSPI,
   1000000  //位速率
 };
 
@@ -72,7 +72,7 @@ uint32_t LPC17xx_SPI_GetSpeed (uint8_t speed)
 *******************************************************************************/
 void SPI_FLASH_Init(void)
 {
-	sspspiStart(&SPID1, &spicfg);
+	sspspiStart(&SPID2, &spicfg);
 
 #if 0
 	volatile uint32_t dummy;
@@ -96,13 +96,13 @@ void SPI_FLASH_Init(void)
 *******************************************************************************/
 void Flash_WriteByte(uint8_t data)		
 {
-	sspspiSend(&SPID1,1, &data);    /* Polled method.       */
+	sspspiSend(&SPID2,1, &data);    /* Polled method.       */
 }
 
 uint8_t Flash_ReadByte(void)		
 {
 	uint8_t r_buf;
-	sspspiReceive(&SPID1, 1, &r_buf); 
+	sspspiReceive(&SPID2, 1, &r_buf); 
 	return r_buf;
 }
 
@@ -131,7 +131,7 @@ uint8_t SSTF016B_RD(uint32_t Dst, uint8_t* RcvBufPt ,uint32_t NByte)
 	Flash_WriteByte(Dst & 0xFF);
 	Flash_WriteByte(0xFF);						/* 发送一个哑字节以读取数据	*/
 #if __SSP_SPI__
-	sspspiReceive(&SPID1, NByte, RcvBufPt); 
+	sspspiReceive(&SPID2, NByte, RcvBufPt); 
 #else
 	for (i = 0; i < NByte; i++)		
 	{
@@ -159,7 +159,7 @@ uint8_t SSTF016B_RdID(idtype IDType,uint32_t* RcvbufPt)
 		SPI_FLASH_CS_LOW();	
 				
 		Flash_WriteByte(0x9F);		 		         /* 发送读JEDEC ID命令(9Fh)	*/
-		sspspiReceive(&SPID1, 3, RcvbufPt); 
+		sspspiReceive(&SPID2, 3, RcvbufPt); 
         SPI_FLASH_CS_HIGH();
 
 		return (ENABLE);

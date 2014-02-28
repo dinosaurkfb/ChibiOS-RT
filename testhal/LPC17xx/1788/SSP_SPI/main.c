@@ -36,7 +36,7 @@ int main(void)
 	halInit(); 
 	chSysInit();
 
-	LOG_PRINT("SSP SPI Test Running.\n");
+	LOG_PRINT("LPC1788 SSP SPI Test Running.\n");
     updateThreadStart();
 
 	
@@ -68,14 +68,14 @@ int main(void)
 	df_write_close(); 
 
 	LOG_PRINT("HY-LPC1788-SDK SPI Flash Write Date:.\n");
-	memdump(ReadBuffer, sizeof(ReadBuffer));
+	memdump(WriteBuffer, sizeof(WriteBuffer));
 
 
 	df_read_open(0);
-	df_read( ReadBuffer, sizeof(ReadBuffer) );
+	df_read(ReadBuffer, sizeof(ReadBuffer) );
 
 	LOG_PRINT("HY-LPC1788-SDK SPI Flash Read Date:.\n");
-	memdump(WriteBuffer, sizeof(WriteBuffer));
+	memdump(ReadBuffer, sizeof(ReadBuffer));
 
 	/* Matching data */
 	if( memcmp(WriteBuffer, ReadBuffer, sizeof(WriteBuffer) ) == 0 )  

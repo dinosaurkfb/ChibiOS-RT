@@ -15,8 +15,8 @@
 */
 
 /**
- * @file    LPC13xx/ssp_spi_lld.h
- * @brief   LPC13xx low level SSP_SPI driver header.
+ * @file    LPC17xx/ssp_spi_lld.h
+ * @brief   LPC17xx low level SSP_SPI driver header.
  *
  * @addtogroup SSP_SPI
  * @{
@@ -61,7 +61,10 @@
 #define CR0_FRFMW               0x20
 #define CR0_CPOL                0x40
 #define CR0_CPHA                0x80
-#define CR0_CLOCKRATE(n)        ((n) << 8)
+/** SSP serial clock rate value load macro, divider rate is PERIPH_CLK / (cpsr * (SCR + 1)) */
+#define CR0_SCR(n)   			((uint32_t)((n&0xFF)<<8))
+#define CR0_BITMASK				((uint32_t)(0xFFFF))
+
 
 #define CR1_LBM                 1
 #define CR1_SSE                 2
@@ -245,9 +248,9 @@ typedef struct {
    */
   uint16_t              cr0;
   /**
-   * @brief SSP CPSR initialization data.
+   * @brief SSP Bit Rate initialization data.
    */
-  uint32_t              cpsr;
+  uint32_t              bit_rate;
 } SSPSPIConfig;
 
 /**

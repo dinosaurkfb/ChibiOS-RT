@@ -75,3 +75,5 @@
  */
 #define LPC17xx_USE_SSP_SPI0 				TRUE
 #define LPC17xx_SSP_SPI0_IRQ_PRIORITY		5
+
+

@@ -24,6 +24,8 @@
 
 #include "ch.h"
 #include "hal.h"
+#include "pinsel_lld.h"
+#include "lpc177x_8x_gpio.h"
 
 #if HAL_USE_SSP_SPI || defined(__DOXYGEN__)
 
@@ -92,7 +94,7 @@ static void ssp_fifo_preload(SSPSPIDriver *spip) {
  *
  * @param[in] spip      pointer to the @p SSPSPIDriver object
  */
-static void spi_serve_interrupt(SSPSPIDriver *spip) {
+static void ssp_spi_serve_interrupt(SSPSPIDriver *spip) {
   LPC_SSP_TypeDef *ssp = spip->ssp;
 
   if ((ssp->MIS & MIS_ROR) != 0) {
@@ -118,7 +120,7 @@ static void spi_serve_interrupt(SSPSPIDriver *spip) {
       (void)ssp->DR;
     if (--spip->rxcnt == 0) {
       chDbgAssert(spip->txcnt == 0,
-                  "spi_serve_interrupt(), #1", "counter out of synch");
+                  "ssp_spi_serve_interrupt(), #1", "counter out of synch");
       /* Stops the IRQ sources.*/
       ssp->IMSC = 0;
       /* Portable SPI ISR code defined in the high level driver, note, it is
@@ -146,7 +148,7 @@ CH_IRQ_HANDLER(Vector78) {
 
   CH_IRQ_PROLOGUE();
 
-  spi_serve_interrupt(&SPID1);
+  ssp_spi_serve_interrupt(&SPID1);
 
   CH_IRQ_EPILOGUE();
 }
@@ -162,7 +164,7 @@ CH_IRQ_HANDLER(Vector7C) {
 
   CH_IRQ_PROLOGUE();
 
-  spi_serve_interrupt(&SPID2);
+  ssp_spi_serve_interrupt(&SPID2);
 
   CH_IRQ_EPILOGUE();
 }
@@ -179,12 +181,44 @@ CH_IRQ_HANDLER(VectorD0) {
 
   CH_IRQ_PROLOGUE();
 
-  spi_serve_interrupt(&SPID3);
+  ssp_spi_serve_interrupt(&SPID3);
 
   CH_IRQ_EPILOGUE();
 }
 #endif
 #endif
+
+static void set_ssp_spi_clock(SSPSPIDriver *spip, uint32_t target_clock)
+{
+    uint32_t prescale, cr0_div, cmp_clk, ssp_clk;
+	ssp_clk = LPC17xx_PCLK;
+
+	/* Find closest divider to get at or under the target frequency.
+	   Use smallest prescale possible and rely on the divider to get
+	   the closest target frequency */
+	cr0_div = 0;
+	cmp_clk = 0xFFFFFFFF;
+	prescale = 2;
+	while (cmp_clk > target_clock)
+	{
+		cmp_clk = ssp_clk / ((cr0_div + 1) * prescale);
+		if (cmp_clk > target_clock)
+		{
+			cr0_div++;
+			if (cr0_div > 0xFF)
+			{
+				cr0_div = 0;
+				prescale += 2;
+			}
+		}
+	}
+
+    /* Write computed prescaler and divider back to register */
+    spip->ssp->CR0 &= (~CR0_SCR(0xFF)) & CR0_BITMASK;
+    spip->ssp->CR0 |= (CR0_SCR(cr0_div)) & CR0_BITMASK;
+    spip->ssp->CPSR = prescale & 0xFF;
+}
+
 
 
 /*===========================================================================*/
@@ -201,33 +235,17 @@ void ssp_spi_lld_init(void) {
 #if LPC17xx_USE_SSP_SPI0
   sspspiObjectInit(&SPID1);
   SPID1.ssp = LPC_SSP0; 
-
-  LPC_GPIO0->FIODIR |=  (1<<16);                   /* P0.16 CS is output */
-
-  /* P0.15 SCK, P0.17 MISO, P0.18 MOSI are SSP pins. */
-  LPC_PINCON->PINSEL0 &= ~( (2UL<<30) ); 		   /* P0.15  cleared */
-  LPC_PINCON->PINSEL1 &= ~( (2<<2) | (2<<4) );     /* P0.17, P0.18  cleared */
-
-  LPC_PINCON->PINSEL0 |=  ( 2UL<<30);              /* P0.15 SCK0 */
-  LPC_PINCON->PINSEL1 |=  ( 2<<2) | (2<<4) ;       /* P0.17 MISO0   P0.18 MOSI0 */
-
 #endif /* LPC17xx_USE_SSP_SPI0 */
 
 #if LPC17xx_USE_SSP_SPI1
-  spiObjectInit(&SPID2);
+  sspspiObjectInit(&SPID2);
   SPID2.ssp = LPC_SSP1;
-  LPC_IOCON->PIO2_1  = 0xC2;                /* SCK1 without resistors.      */
-  LPC_IOCON->PIO2_2  = 0xC2;                /* MISO1 without resistors.     */
-  LPC_IOCON->PIO2_3  = 0xC2;                /* MOSI1 without resistors.     */
 #endif /* LPC17xx_USE_SSP_SPI0 */
 
 #ifdef LPC177x_8x
 #if LPC17xx_USE_SSP_SPI2
-  spiObjectInit(&SPID3);
+  sspspiObjectInit(&SPID3);
   SPID3.ssp = LPC_SSP1;
-  /*
-   * ...................
-   */
 #endif /* LPC17xx_USE_SSP_SPI2 */
 #endif 
 }
@@ -244,21 +262,73 @@ void ssp_spi_lld_start(SSPSPIDriver *spip) {
   if (spip->state == SSP_SPI_STOP) {
     /* Clock activation.*/
 #if LPC17xx_USE_SSP_SPI0
+
+#ifdef LPC177x_8x
+	/*
+	* Initialize SPI pin connect
+	* P2.19 - SSEL - used as GPIO
+	* P2.22 - SCK
+	* P2.26 - MISO
+	* P2.27 - MOSI
+	*/
+	PINSEL_ConfigPin(2, 22, 2);	 /* SSP0_SCK */
+	PINSEL_ConfigPin(2, 26, 2);	 /* SSP0_MISO */
+	PINSEL_ConfigPin(2, 27, 2);	 /* SSP0_MOSI */
+
+	/* P2.19 CS is output */
+	PINSEL_ConfigPin(2, 19, 0);	 /* P2.19 - GPIO */
+    GPIO_SetDir(2, (1<<19), 1);
+
+#else
+	LPC_GPIO0->FIODIR |=  (1<<16);                   /* P0.16 CS is output */
+	/* P0.15 SCK, P0.17 MISO, P0.18 MOSI are SSP pins. */
+	LPC_PINCON->PINSEL0 &= ~( (2UL<<30) ); 		     /* P0.15  cleared */
+	LPC_PINCON->PINSEL1 &= ~( (2<<2) | (2<<4) );     /* P0.17, P0.18  cleared */
+
+	LPC_PINCON->PINSEL0 |=  ( 2UL<<30);              /* P0.15 SCK0 */
+	LPC_PINCON->PINSEL1 |=  ( 2<<2) | (2<<4) ;       /* P0.17 MISO0   P0.18 MOSI0 */
+#endif
     if (&SPID1 == spip) { 
 	  LPC_SC->PCONP |= PCSSP0;                      /* Enable power to SSPI0 block */ 
       nvicEnableVector(SSP0_IRQn,
                        CORTEX_PRIORITY_MASK(LPC17xx_SSP_SPI0_IRQ_PRIORITY));
     }
 #endif
+
 #if LPC17xx_USE_SSP_SPI1
+#ifdef LPC177x_8x
+	/*
+	* Initialize SPI pin connect
+	* P5.4 -  SSEL - used as GPIO
+	* P1.31 - SCK
+	* P1.18 - MISO
+	* P0.13 - MOSI
+	*/
+	/* Default P5.4 - GPIO */
+	PINSEL_ConfigPin(1, 31, 2);	 /* SSP1_SCK */
+	PINSEL_ConfigPin(1, 18, 5);	 /* SSP1_MISO */
+	PINSEL_ConfigPin(0, 13, 2);  /* SSP1_MOSI */
+
+    /* P5.4 CS is output */
+	LPC_GPIO5->FIODIR |= 1 << 4;
+#else
+	/* Please Configure PIN (CS SCK MISO MOSI) */
+	// ----------
+	// ----------
+#endif
     if (&SPID2 == spip) {
 	  LPC_SC->PCONP |= PCSSP1;                      /* Enable power to SSPI1 block */ 
       nvicEnableVector(SSP1_IRQn,
                        CORTEX_PRIORITY_MASK(LPC17xx_SSP_SPI1_IRQ_PRIORITY));
     }
 #endif
+
 #ifdef LPC177x_8x
 #if LPC17xx_USE_SSP_SPI2
+	/* Please Configure PIN (CS SCK MISO MOSI) */
+	// ----------
+	// ----------
+	/* */
     if (&SPID3 == spip) {
 	  LPC_SC->PCONP |= PCSSP2;                      /* Enable power to SSPI2 block */ 
       nvicEnableVector(SSP1_IRQn,
@@ -268,15 +338,18 @@ void ssp_spi_lld_start(SSPSPIDriver *spip) {
 #endif
   }
 
+#ifdef LPC177x_8x
+#else
   /* PCLK_SSP0=CCLK */
   LPC_SC->PCLKSEL1 &= ~(3<<10);                    /* PCLKSP0 = CCLK/4 (18MHz) */
   LPC_SC->PCLKSEL1 |=  (1<<10);                    /* PCLKSP0 = CCLK   (72MHz) */
+#endif
 
   /* Configuration.*/
   spip->ssp->CR1  = 0;
   spip->ssp->ICR  = ICR_RT | ICR_ROR;
   spip->ssp->CR0  = spip->config->cr0;
-  spip->ssp->CPSR = spip->config->cpsr;
+  set_ssp_spi_clock(spip, spip->config->bit_rate);
   spip->ssp->CR1  = CR1_SSE;
 }
 
