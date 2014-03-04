@@ -18,12 +18,33 @@
 #include "hal.h"
 
 
+#include "test.h"
 #include "update.h"
 
 using namespace chibios_rt;
 /*===========================================================================*/
 /* Configurable settings.                                                    */
 /*===========================================================================*/
+
+/*
+ * Tester thread class. This thread executes the test suite.
+ */
+class TesterThread : public BaseStaticThread<256> {
+
+protected:
+  virtual msg_t main(void) {
+
+    setName("tester");
+
+    return TestThread(&SD1);
+  }
+
+public:
+  TesterThread(void) : BaseStaticThread<256>() {
+  }
+};
+
+static TesterThread tester;
 
 /*
  * Application entry point.
@@ -68,12 +89,12 @@ int main(void) {
   /*
    * Normal main() thread activity, nothing in this test.
    */
-
   updateThreadStart();
 
+  tester.start(NORMALPRIO);
+  tester.wait();
+
   while (TRUE) {
-    ToggleLED(1);
-    ToggleLED(2);
     BaseThread::sleep(MS2ST(500));
   }
   return 0;
