@@ -69,7 +69,6 @@ CANDriver CAND2;
 static void can_lld_set_filters(uint32_t can2sb,
                          uint32_t num,
                          const CANFilter *cfp) {
-
 	int i=can2sb;
 	if(i>0) {
 		i=num;
@@ -77,57 +76,6 @@ static void can_lld_set_filters(uint32_t can2sb,
 	if(cfp ==NULL) {
 		return;
 	}
-#if 0
-  /* Temporarily enabling CAN1 clock.*/
-  rccEnableCAN1(FALSE);
-
-  /* Filters initialization.*/
-  CAN1->FMR = (CAN1->FMR & 0xFFFF0000) | (can2sb << 8) | CAN_FMR_FINIT;
-  if (num > 0) {
-    uint32_t i, fmask;
-
-    /* All filters cleared.*/
-    CAN1->FA1R = 0;
-    CAN1->FM1R = 0;
-    CAN1->FS1R = 0;
-    CAN1->FFA1R = 0;
-    for (i = 0; i < LPC17XX_CAN_MAX_FILTERS; i++) {
-      CAN1->sFilterRegister[i].FR1 = 0;
-      CAN1->sFilterRegister[i].FR2 = 0;
-    }
-
-    /* Scanning the filters array.*/
-    for (i = 0; i < num; i++) {
-      fmask = 1 << cfp->filter;
-      if (cfp->mode)
-        CAN1->FM1R |= fmask;
-      if (cfp->scale)
-        CAN1->FS1R |= fmask;
-      if (cfp->assignment)
-        CAN1->FFA1R |= fmask;
-      CAN1->sFilterRegister[cfp->filter].FR1 = cfp->register1;
-      CAN1->sFilterRegister[cfp->filter].FR2 = cfp->register2;
-      CAN1->FA1R |= fmask;
-      cfp++;
-    }
-  }
-  else {
-    /* Setting up a single default filter that enables everything for both
-       CANs.*/
-    CAN1->sFilterRegister[0].FR1 = 0;
-    CAN1->sFilterRegister[0].FR2 = 0;
-    CAN1->sFilterRegister[can2sb].FR1 = 0;
-    CAN1->sFilterRegister[can2sb].FR2 = 0;
-    CAN1->FM1R = 0;
-    CAN1->FFA1R = 0;
-    CAN1->FS1R = 1 | (1 << can2sb);
-    CAN1->FA1R = 1 | (1 << can2sb);
-  }
-  CAN1->FMR &= ~CAN_FMR_FINIT;
-
-  /* Clock disabled, it will be enabled again in can_lld_start().*/
-  rccDisableCAN1(FALSE);
-#endif
 }
 
 /**
@@ -144,6 +92,7 @@ static void can_lld_tx_handler(CANDriver *canp) {
   chEvtBroadcastFlagsI(&canp->txempty_event, CAN_MAILBOX_TO_MASK(1));
   chSysUnlockFromIsr();
 }
+
 /**
  * @brief   Common CDO ISR handler.
  *
@@ -151,10 +100,10 @@ static void can_lld_tx_handler(CANDriver *canp) {
  *
  * @notapi
  */
-static void can_lld_cdo_handler(CANDriver *canp) {
+static void can_lld_cdo_handler(CANDriver *canp, uint32_t err_code) {
 	canp->can->CMR = 0x08;
     chSysLockFromIsr();
-    chEvtBroadcastFlagsI(&canp->error_event, CAN_OVERFLOW_ERROR);
+    chEvtBroadcastFlagsI(&canp->error_event, err_code);
     chSysUnlockFromIsr();
 }
 
@@ -198,76 +147,47 @@ static void can_lld_rx_handler(CANDriver *canp) {
 }
 
 /**
- * @brief   Common SCE ISR handler.
+ * @brief   Common error ISR handler.
  *
  * @param[in] canp      pointer to the @p CANDriver object
  *
  * @notapi
  */
-#if 0
-static void can_lld_sce_handler(CANDriver *canp) {
-  uint32_t msr;
-
-  msr = canp->can->MSR;
-  canp->can->MSR = CAN_MSR_ERRI | CAN_MSR_WKUI | CAN_MSR_SLAKI;
-  /* Wakeup event.*/
-#if CAN_USE_SLEEP_MODE
-  if (msr & CAN_MSR_WKUI) {
-    canp->state = CAN_READY;
-    canp->can->MCR &= ~CAN_MCR_SLEEP;
+static void can_lld_err_handler(CANDriver *canp, uint32_t err_code) {
     chSysLockFromIsr();
-    chEvtBroadcastI(&canp->wakeup_event);
-    chSysUnlockFromIsr();
-  }
-#endif /* CAN_USE_SLEEP_MODE */
-  /* Error event.*/
-  if (msr & CAN_MSR_ERRI) {
-    flagsmask_t flags;
-    uint32_t esr = canp->can->ESR;
-
-    canp->can->ESR &= ~CAN_ESR_LEC;
-    flags = (flagsmask_t)(esr & 7);
-    if ((esr & CAN_ESR_LEC) > 0)
-      flags |= CAN_FRAMING_ERROR;
-
-    chSysLockFromIsr();
+	uint8_t rxerr = (canp->can->GSR >> 16) & 0xff;
+	uint8_t txerr = (canp->can->GSR >> 24) & 0xff;
+	if((rxerr > 127) || (txerr > 127)) {
+		canp->can->MOD |= CAN_MOD_RM ;
+		canp->can->GSR = 0;
+		canp->can->MOD = 0;
+	}
     /* The content of the ESR register is copied unchanged in the upper
        half word of the listener flags mask.*/
-    chEvtBroadcastFlagsI(&canp->error_event, flags | (flagsmask_t)(esr << 16));
+    chEvtBroadcastFlagsI(&canp->error_event, err_code);
     chSysUnlockFromIsr();
-  }
-}
-#endif
-
-#if 0
-typedef struct {
-	char *name;
-	uint32_t v;
-} RegNode;
-RegNode RegMap[32];
-static int sgi = 0;
-
-void putRegMap(char *name, uint32_t v) {
-	if(sgi >= 32) {
-		sgi = 0;
-	}
-	RegMap[sgi].name = name;
-	RegMap[sgi].v = v;
-	sgi++;
 }
 
-void printRegMap() {
-	int i;
-	for(i=0; i<sgi; i++) {
-		LOG_PRINT("%02d %s=0x%x.\n", i, 
-				RegMap[i].name,
-				RegMap[i].v
-				);
-	}
-	LOG_PRINT("\n");
-	sgi=0;
+
+#if CAN_USE_SLEEP_MODE
+/**
+ * @brief   Wake up ISR handler.
+ *
+ * @param[in] canp      pointer to the @p CANDriver object
+ *
+ * @notapi
+ */
+static void can_lld_wakeup_handler(CANDriver *canp) {
+
+  /* Wakeup event.*/
+  canp->state = CAN_READY;
+  can_lld_wakeup(canp);
+  chSysLockFromIsr();
+  chEvtBroadcastI(&canp->wakeup_event);
+  chSysUnlockFromIsr();
+
 }
-#endif
+#endif /* CAN_USE_SLEEP_MODE */
 
 /**
  * @brief   Common RX TX ERR ISR handler.
@@ -284,14 +204,17 @@ static void can_lld_handler(void) {
 		can_lld_rx_handler(&CAND1); 
 	}
 	if((icr1 & CAN_ICR_DOI) != 0) {
-		can_lld_cdo_handler(&CAND1);
+		can_lld_cdo_handler(&CAND1, icr1);
 	} 
-	if(((icr1 & CAN_ICR_TI1) != 0) || 
-			((icr1 & CAN_ICR_TI2) != 0) ||
-			((icr1 & CAN_ICR_TI3) != 0)) {
+	if(icr1 & (CAN_ICR_TI1 | CAN_ICR_TI2 | CAN_ICR_TI3)) {
 		can_lld_tx_handler(&CAND1); 
 	}
+	if(icr1 & (CAN_ICR_EI | CAN_ICR_EPI | CAN_ICR_BEI)) {
+		can_lld_err_handler(&CAND1, icr1);
+	}
+
 #endif
+
 
 #if LPC17XX_CAN_USE_CAN2 || defined(__DOXYGEN__)
 	uint32_t icr2 = CAND2.can->ICR;
@@ -299,13 +222,15 @@ static void can_lld_handler(void) {
 		can_lld_rx_handler(&CAND2); 
 	}
 	if((icr2 & CAN_ICR_DOI) != 0) {
-		can_lld_cdo_handler(&CAND2);
+		can_lld_cdo_handler(&CAND2, icr2);
 	} 
-	if(((icr2 & CAN_ICR_TI1) != 0) || 
-			((icr1 & CAN_ICR_TI2) != 0) ||
-			((icr1 & CAN_ICR_TI3) != 0)) {
+	if(icr2 & (CAN_ICR_TI1 | CAN_ICR_TI2 | CAN_ICR_TI3)) {
 		can_lld_tx_handler(&CAND2); 
 	}
+	if(icr2 & (CAN_ICR_EI | CAN_ICR_EPI | CAN_ICR_BEI)) {
+		can_lld_err_handler(&CAND2, icr2);
+	}
+
 #endif
 }
 
@@ -327,6 +252,33 @@ CH_IRQ_HANDLER(VectorA4) {
   CH_IRQ_EPILOGUE();
 }
 
+#if CAN_USE_SLEEP_MODE
+/**
+ * @brief   CAN Common, CAN 1 Tx, CAN 1 Rx, CAN 2 Tx, CAN 2 Rx.
+ *
+ * @isr
+ */
+CH_IRQ_HANDLER(VectorC8) {
+
+ CH_IRQ_PROLOGUE();
+#if LPC17XX_CAN_USE_CAN1 || defined(__DOXYGEN__)
+ uint32_t icr1 = CAND1.can->ICR;
+ if((icr1 & CAN_ICR_WUI) != 0) { 
+	 can_lld_wakeup_handler(&CAND1);
+ }
+#endif
+
+#if LPC17XX_CAN_USE_CAN2 || defined(__DOXYGEN__) 
+ uint32_t icr2 = CAND2.can->ICR; 
+ if((icr2 & CAN_ICR_WUI) != 0) { 
+	 can_lld_wakeup_handler(&CAND2); 
+ }
+#endif
+
+ CH_IRQ_EPILOGUE();
+}
+#endif /* CAN_USE_SLEEP_MODE */
+
 
 /*===========================================================================*/
 /* Driver exported functions.                                                */
@@ -343,22 +295,14 @@ void can_lld_init(void) {
   /* Driver initialization.*/
   canObjectInit(&CAND1);
   CAND1.can = LPC_CAN1;
+  LPC_SC->PCONP |=  PCCAN1;
 #endif
 #if LPC17XX_CAN_USE_CAN2
   /* Driver initialization.*/
   canObjectInit(&CAND2);
   CAND2.can = LPC_CAN2;
+  LPC_SC->PCONP |=  PCCAN2;
 #endif
-
-#if 0
-  /* Filters initialization.*/
-#if LPC17XX_HAS_CAN2
-  can_lld_set_filters(LPC17XX_CAN_MAX_FILTERS / 2, 0, NULL);
-#else
-  can_lld_set_filters(LPC17XX_CAN_MAX_FILTERS, 0, NULL);
-#endif
-#endif
-
 }
 
 /**
@@ -373,7 +317,6 @@ void can_lld_start(CANDriver *canp) {
   /* Clock activation.*/
 #if LPC17XX_CAN_USE_CAN1
   if (&CAND1 == canp) {
-	LPC_SC->PCONP |=  PCCAN1;
 #ifdef LPC177x_8x
     PINSEL_ConfigPin(0,0,1); //CAN_RD1
     PINSEL_ConfigPin(0,1,1); //CAN_TD1
@@ -388,7 +331,6 @@ void can_lld_start(CANDriver *canp) {
 #endif
 #if LPC17XX_CAN_USE_CAN2
   if (&CAND2 == canp) {
-	LPC_SC->PCONP |=  PCCAN2;
 #ifdef LPC177x_8x
     PINSEL_ConfigPin(0,4,2); //CAN_RD2
     PINSEL_ConfigPin(0,5,2); //CAN_TD2
@@ -439,18 +381,37 @@ void can_lld_stop(CANDriver *canp) {
     if (&CAND1 == canp) {
 	  /* All sources disabled.    */
       canp->can->IER = 0x00000000;           
-	  LPC_SC->PCONP &= (~PCCAN1);
     }
 #endif
 #if LPC17XX_CAN_USE_CAN2
     if (&CAND2 == canp) {
 	  /* All sources disabled.    */
       canp->can->IER = 0x00000000;
-	  LPC_SC->PCONP &= (~PCCAN2);
     }
 #endif
     nvicDisableVector(CAN_IRQn);
   }
+}
+
+/**
+ * @brief   get the index of mailbox.
+ *
+ * @param[in] canp      pointer to the @p CANDriver object
+ *
+ * @return              The index of mailbox.       
+ *
+ * @notapi
+ */
+int get_mailbox_index(CANDriver *canp) 
+{
+	if(canp->can->SR & CAN_SR_TBS1) {
+		return 1;
+	}else if(canp->can->SR & CAN_SR_TBS2) {
+		return 2;
+	}else if(canp->can->SR & CAN_SR_TBS3) {
+		return 3;
+	}
+	return -1;
 }
 
 /**
@@ -481,26 +442,6 @@ bool_t can_lld_is_tx_empty(CANDriver *canp, canmbx_t mailbox) {
   }
 }
 
-/**
- * @brief   get the index of mailbox.
- *
- * @param[in] canp      pointer to the @p CANDriver object
- *
- * @return              The index of mailbox.       
- *
- * @notapi
- */
-int get_mailbox_index(CANDriver *canp) 
-{
-	if(canp->can->SR & CAN_SR_TBS1) {
-		return 1;
-	}else if(canp->can->SR & CAN_SR_TBS2) {
-		return 2;
-	}else if(canp->can->SR & CAN_SR_TBS3) {
-		return 3;
-	}
-	return -1;
-}
 
 /**
  * @brief   Inserts a frame into the transmit queue.
@@ -601,6 +542,7 @@ void can_lld_receive(CANDriver *canp,
 	memcpy(crfp, &canp->rx_map.buf[index], sizeof(CANRxFrame));  
 	canp->rx_map.start = (canp->rx_map.start + 1) & LPC17XX_CAN_RX_BUF_MASK;
 	canp->rx_map.num--;
+
 }
 
 #if CAN_USE_SLEEP_MODE || defined(__DOXYGEN__)
@@ -625,7 +567,22 @@ void can_lld_sleep(CANDriver *canp) {
  */
 void can_lld_wakeup(CANDriver *canp) {
 
+  uint32_t reg_val = 0;
+
+#if LPC17xx_CAN_USE_CAN1
+  if (&CAND1 == canp) {
+    reg_val = (1UL << 1);
+  }
+#endif
+#if LPC17xx_CAN_USE_CAN2
+  if (&CAND2 == canp) {
+    reg_val = (1UL << 2);
+  }
+#endif
+
+  LPC_SC->CANSLEEPCLR = reg_val;
   canp->can->MOD &= ~CAN_MOD_SM;
+  LPC_SC->CANWAKEFLAGS = reg_val;
 }
 #endif /* CAN_USE_SLEEP_MODE */
 
@@ -642,21 +599,6 @@ void can_lld_wakeup(CANDriver *canp) {
  * @api
  */
 void canLPC17XXSetFilters(uint32_t can2sb, uint32_t num, const CANFilter *cfp) {
-
-#if 0
-  chDbgCheck((can2sb > 1) && (can2sb < LPC17XX_CAN_MAX_FILTERS) &&
-             (num < LPC17XX_CAN_MAX_FILTERS),
-             "canLPC17XXSetFilters");
-
-#if LPC17XX_CAN_USE_CAN1
-  chDbgAssert(CAND1.state == CAN_STOP,
-              "canLPC17XXSetFilters(), #1", "invalid state");
-#endif
-#if LPC17XX_CAN_USE_CAN2
-  chDbgAssert(CAND2.state == CAN_STOP,
-              "canLPC17XXSetFilters(), #2", "invalid state");
-#endif
-#endif
 
   can_lld_set_filters(can2sb, num, cfp);
 }

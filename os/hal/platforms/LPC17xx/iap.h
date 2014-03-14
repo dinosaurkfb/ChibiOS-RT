@@ -1,6 +1,8 @@
 #ifndef _IAP_H_
 #define _IAP_H_
 
+#include "ch.h"
+#include "hal.h"
 /* Output parameters for IAP */
 extern uint32_t  paramout[8];
 

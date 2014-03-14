@@ -88,7 +88,6 @@
 /* LED4 in SDK board connects to P5.1 */
 #define GPIO5_LD9                   1
 
-#define CHIP_TYPE                   1788
 #define UPDATE_BAUD_RATE            115200
 #define ISP_BAUD_RATE               57600
 /* This HY-LPC1788 board use AT24C02 */

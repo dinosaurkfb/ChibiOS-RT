@@ -29,6 +29,7 @@ const uint32_t update_cfg[] __attribute__ ((section(".update_cfg"))) =
   0, /* reserved */
 };
 
+
 // buf length: must >=16 bytes 
 static int GetMaintainPacket(uint8_t *buf)
 {
@@ -137,7 +138,7 @@ static msg_t UARTUpdaterThread(void *arg) {
   return RDY_OK;
 }
 
-#if ENABLE_IAP
+#if 0 
 
 static WORKING_AREA(waCANUpdaterThread, 128);
 
@@ -175,7 +176,7 @@ void updateThreadStart(void) {
   chThdCreateStatic(waUARTUpdaterThread, sizeof waUARTUpdaterThread,
 		    NORMALPRIO - 20, UARTUpdaterThread, NULL);
 
-#if ENABLE_IAP
+#if 0 
   chThdCreateStatic(waCANUpdaterThread, sizeof waCANUpdaterThread,
 		    NORMALPRIO - 20, CANUpdaterThread, NULL);
 

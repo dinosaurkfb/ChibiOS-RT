@@ -89,14 +89,14 @@ static msg_t can_tx(void * p) {
     txmsg.data32[1] = 0xaaFFa0FF;
 
     canTransmit(&CAND2, CAN_ANY_MAILBOX, &txmsg, MS2ST(100));
-    chThdSleepMilliseconds(1000);
 
-
+#if 0
     txmsg.EID = 0x0123123;
     txmsg.DLC = 4;
     txmsg.data32[0] = 0x99999999;
     canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, MS2ST(100));
-    chThdSleepMilliseconds(1000);
+#endif
+    chThdSleepMilliseconds(100);
   }
   return 0;
 }
@@ -126,17 +126,17 @@ int main(void) {
   /*
    * Activates the CAN drivers 1 and 2.
    */
-  canStart(&CAND1, &cancfg);
+ // canStart(&CAND1, &cancfg);
   canStart(&CAND2, &cancfg);
 
   /*
    * Starting the transmitter and receiver threads.
    */
   LOG_PRINT("Test Start\n");
-  chThdCreateStatic(can_rx1_wa, sizeof(can_rx1_wa), NORMALPRIO + 7,
-                    can_rx, (void *)&can1);
-  chThdCreateStatic(can_rx2_wa, sizeof(can_rx2_wa), NORMALPRIO + 7,
-                    can_rx, (void *)&can2);
+//  chThdCreateStatic(can_rx1_wa, sizeof(can_rx1_wa), NORMALPRIO + 7, can_rx, (void *)&can1);
+
+  chThdCreateStatic(can_rx2_wa, sizeof(can_rx2_wa), NORMALPRIO + 7, can_rx, (void *)&can2);
+
   chThdCreateStatic(can_tx_wa, sizeof(can_tx_wa), NORMALPRIO + 7, can_tx, NULL);
 
   LOG_PRINT("Test Running\n");

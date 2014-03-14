@@ -119,14 +119,14 @@
 
 #define IAP_BAUD1_RATE              USE_BTR_CAN1
 #define IAP_BAUD2_RATE              USE_BTR_CAN2
-
-typedef void (* FUNC_APP_START)(void); 
-extern const void *app_addr;
-extern FUNC_APP_START app_start;
-extern uint8_t * g_p_app_flag;
 #endif /* #if ENABLE_IAP */
 
+
+#if ENABLE_IAP
 extern const uint32_t update_cfg[12];
+#else
+extern const uint32_t update_cfg[9];
+#endif
 
 #ifdef __cplusplus
 extern "C" {
