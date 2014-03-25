@@ -46,6 +46,12 @@ void print_buf(uint8_t *buf, size_t len) {
   LOG_PRINT("\n***\n");
 }
 
+/* EEPROM I2C interface config */
+static const I2CConfig eeprom_i2ccfg = {
+    I2C_STANDARD_MODE,
+    400000
+};
+
 /*
  * Application entry point.
  */
@@ -100,8 +106,8 @@ int main(void) {
 
   int32_t w_ret = -1;
   int32_t r_ret = -1;
-  EEPROMInit(&I2CD1);
- 
+  EEPROMInit(&I2CD1, &eeprom_i2ccfg);
+
   LOG_PRINT("\n*** Test mc24lc0x_write_byte\n");
   uint8_t byte = 57;
   uint8_t addr = 0x01;
@@ -150,7 +156,7 @@ int main(void) {
     LOG_PRINT("WriteEEPROM test failed\n");
     goto loop;
   }
-  
+
   r_ret = ReadEEPROM(0, rxbuf, readbytes);
   LOG_PRINT("ReadEEPROM read %d bytes, return: %d\n", readbytes, r_ret);
   //  I2C_Dump();

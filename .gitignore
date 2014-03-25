@@ -1,3 +1,7 @@
 *~
 TAGS
 *.bat
+GPATH
+GRTAGS
+GTAGS
+gtags.files

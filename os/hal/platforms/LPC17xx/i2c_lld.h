@@ -119,6 +119,14 @@
 /*===========================================================================*/
 /* Derived constants and error checks.                                       */
 /*===========================================================================*/
+/**
+ * @brief   Get errors from I2C driver.
+ *
+ * @param[in] i2cp      pointer to the @p I2CDriver object
+ *
+ * @notapi
+ */
+#define i2c_lld_get_errors(i2cp) ((i2cp)->errors)
 
 /*===========================================================================*/
 /* Driver data structures and types.                                         */
@@ -144,6 +152,15 @@ typedef enum {
 typedef uint32_t i2cflags_t;
 
 /**
+ * @brief   Supported modes for the I2C bus.
+ */
+typedef enum {
+  I2C_STANDARD_MODE = 1,
+  I2C_FAST_MODE = 2,
+  I2C_FAST_MODE_PLUS = 3,
+} i2cmode_t;
+
+/**
  * @brief   Driver configuration structure.
  * @note    Implementations may extend this structure to contain more,
  *          architecture dependent, fields.
@@ -153,6 +170,8 @@ typedef uint32_t i2cflags_t;
  * @brief Driver configuration structure.
  */
 typedef struct {
+  i2cmode_t       mode;             /**< @brief Specifies the I2C mode.        */
+  uint32_t        clock_timing;     /**< @brief Specifies the clock timing     */
 } I2CConfig;
 
 /**
@@ -182,7 +201,7 @@ typedef struct I2CDriver I2CDriver;
 struct I2CDriver {
   /**
    * @brief   Driver state.
-   *          0=idle 
+   *          0=idle
    *          1=wait for i2c stop
    *          2=wait for i2c start ok
    *          3=normal
