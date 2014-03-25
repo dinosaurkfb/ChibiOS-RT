@@ -36,6 +36,12 @@
 static uint8_t rxbuf[RX_DEPTH];
 static uint8_t txbuf[TX_DEPTH];
 
+/* EEPROM I2C interface config */
+static const I2CConfig eeprom_i2ccfg = {
+    I2C_STANDARD_MODE,
+    400000
+};
+
 void print_buf(uint8_t *buf, size_t len) {
   size_t i = 0;
   LOG_PRINT("\n***\n");
@@ -92,13 +98,13 @@ int main(void) {
 #ifdef NO_TEST
   uint32_t s = 0;
 #endif
-  
+
   updateThreadStart();
 
   int32_t w_ret = -1;
   int32_t r_ret = -1;
-  EEPROMInit(&I2CD2);
- 
+  EEPROMInit(&I2CD2, &eeprom_i2ccfg);
+
   LOG_PRINT("*** Test at24c0x_write_byte\n");
   uint8_t byte = 57;
   uint8_t addr = 0x01;

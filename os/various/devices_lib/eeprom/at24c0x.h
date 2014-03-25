@@ -8,7 +8,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-  void EEPROMInit(I2CDriver *i2cp);
+  void EEPROMInit(I2CDriver *i2cp, const I2CConfig *i2ccfgp);
   msg_t at24c0x_write_byte(I2CDriver *i2cp, uint8_t addr, uint8_t byte);
   msg_t at24c0x_random_read(I2CDriver *i2cp, uint8_t addr, uint8_t *rxbuf);
   msg_t at24c0x_cur_read(I2CDriver *i2cp, uint8_t *rxbuf);
