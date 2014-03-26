@@ -1,22 +1,23 @@
 /*
-    ChibiOS/RT - Copyright (C) 2006-2013 Giovanni Di Sirio
+  ChibiOS/RT - Copyright (C) 2006-2013 Giovanni Di Sirio
 
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
 
-        http://www.apache.org/licenses/LICENSE-2.0
+  http://www.apache.org/licenses/LICENSE-2.0
 
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
 */
 
 #include "ch.h"
 #include "hal.h"
 #include "chprintf.h"
+#include "pinsel_lld.h"
 
 /**
  * @brief   PAL setup.
@@ -25,12 +26,12 @@
  */
 #if HAL_USE_PAL || defined(__DOXYGEN__)
 const PALConfig pal_default_config = {
- {VAL_GPIO0DATA, VAL_GPIO0DIR},
- {VAL_GPIO1DATA, VAL_GPIO1DIR},
- {VAL_GPIO2DATA, VAL_GPIO2DIR},
- {VAL_GPIO3DATA, VAL_GPIO3DIR},
- {VAL_GPIO4DATA, VAL_GPIO4DIR},
- {VAL_GPIO5DATA, VAL_GPIO5DIR},
+  {VAL_GPIO0DATA, VAL_GPIO0DIR},
+  {VAL_GPIO1DATA, VAL_GPIO1DIR},
+  {VAL_GPIO2DATA, VAL_GPIO2DIR},
+  {VAL_GPIO3DATA, VAL_GPIO3DIR},
+  {VAL_GPIO4DATA, VAL_GPIO4DIR},
+  {VAL_GPIO5DATA, VAL_GPIO5DIR},
 };
 #endif
 
@@ -60,20 +61,20 @@ void msDelay (uint32_t ms) {
  */
 void LEDOFF(uint8_t x) {
   switch (x) {
-  case 1:
-    palSetPad(GPIO2, GPIO2_LD6);
-    break;
-  case 2:
-    palSetPad(GPIO1, GPIO1_LD7);
-    break;
-  case 3:
-    palSetPad(GPIO5, GPIO5_LD8);
-    break;
-  case 4:
-    palSetPad(GPIO5, GPIO5_LD9);
-    break;
-  default:
-    break;
+    case 1:
+      palSetPad(GPIO2, GPIO2_LD6);
+      break;
+    case 2:
+      palSetPad(GPIO1, GPIO1_LD7);
+      break;
+    case 3:
+      palSetPad(GPIO5, GPIO5_LD8);
+      break;
+    case 4:
+      palSetPad(GPIO5, GPIO5_LD9);
+      break;
+    default:
+      break;
   }
 }
 
@@ -86,20 +87,20 @@ void LEDOFF(uint8_t x) {
  */
 void LEDON(uint8_t x) {
   switch (x) {
-  case 1:
-    palClearPad(GPIO2, GPIO2_LD6);
-     break;
- case 2:
-    palClearPad(GPIO1, GPIO1_LD7);
-    break;
-  case 3:
-    palClearPad(GPIO5, GPIO5_LD8);
-    break;
-  case 4:
-    palClearPad(GPIO5, GPIO5_LD9);
-    break;
-  default:
-    break;
+    case 1:
+      palClearPad(GPIO2, GPIO2_LD6);
+      break;
+    case 2:
+      palClearPad(GPIO1, GPIO1_LD7);
+      break;
+    case 3:
+      palClearPad(GPIO5, GPIO5_LD8);
+      break;
+    case 4:
+      palClearPad(GPIO5, GPIO5_LD9);
+      break;
+    default:
+      break;
   }
 }
 
@@ -112,20 +113,20 @@ void LEDON(uint8_t x) {
  */
 void ToggleLED(uint8_t x) {
   switch (x) {
-  case 1:
-    palTogglePad(GPIO2, GPIO2_LD6);
-     break;
- case 2:
-    palTogglePad(GPIO1, GPIO1_LD7);
-    break;
-  case 3:
-    palTogglePad(GPIO5, GPIO5_LD8);
-    break;
-  case 4:
-    palTogglePad(GPIO5, GPIO5_LD9);
-    break;
-  default:
-    break;
+    case 1:
+      palTogglePad(GPIO2, GPIO2_LD6);
+      break;
+    case 2:
+      palTogglePad(GPIO1, GPIO1_LD7);
+      break;
+    case 3:
+      palTogglePad(GPIO5, GPIO5_LD8);
+      break;
+    case 4:
+      palTogglePad(GPIO5, GPIO5_LD9);
+      break;
+    default:
+      break;
   }
 }
 
@@ -257,6 +258,23 @@ void LOG_PRINT(const char *fmt, ...) {
  */
 void boardInit(void) {
   ledOperate();
+  /* set PIO0.27 and PIO0.28 to I2C0 SDA and SCL */
+#if LPC17xx_I2C_USE_I2C0
+  PINSEL_ConfigPin(0, 27, 0b001);
+  PINSEL_ConfigPin(0, 28, 0b001);
+#endif /* LPC17xx_I2C_USE_I2C0 */
+
+#if LPC17xx_I2C_USE_I2C1
+  /* set PIO2.14 and PIO2.15 to I2C1 SDA and SCL */
+  PINSEL_ConfigPin(2, 14, 0b010);
+  PINSEL_ConfigPin(2, 15, 0b010);
+#endif /* LPC17xx_I2C_USE_I2C1 */
+
+#if LPC17xx_I2C_USE_I2C2
+  /* set PIO2.30 and PIO2.31 to I2C2 SDA and SCL */
+  PINSEL_ConfigPin(2, 30, 0b010);
+  PINSEL_ConfigPin(2, 31, 0b010);
+#endif /* LPC17xx_I2C_USE_I2C2 */
 
 #if LOG_PRINT_USE_UART0
   /*

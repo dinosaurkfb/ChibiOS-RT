@@ -493,82 +493,48 @@ void i2c_lld_start(I2CDriver *i2cp) {
 #if LPC17xx_I2C_USE_I2C0
     if (&I2CD1 == i2cp) {
       LPC_SC->PCONP |= (1 << 7);
-      /* set PIO0.27 and PIO0.28 to I2C0 SDA and SCL */
-#ifdef LPC177x_8x
-      PINSEL_ConfigPin(0, 27, 0b001);
-      PINSEL_ConfigPin(0, 28, 0b001);
-#else /* ifdef LPC177x_8x */
-      /* function to 01 on both SDA and SCL. */
-      LPC_PINCON->PINSEL1 &= ~0x03C00000;
-      LPC_PINCON->PINSEL1 |= 0x01400000;
-#endif /* ifdef LPC177x_8x */
+      nvicEnableVector(I2C0_IRQn,
+                       CORTEX_PRIORITY_MASK(LPC17xx_I2C0_IRQ_PRIORITY));
     }
 #endif /* LPC17xx_I2C_USE_I2C0 */
 
 #if LPC17xx_I2C_USE_I2C1
     if (&I2CD2 == i2cp) {
       LPC_SC->PCONP |=(1<<19);
-#ifdef LPC177x_8x
-      /* set PIO2.14 and PIO2.15 to I2C1 SDA and SCL */
-      PINSEL_ConfigPin(2, 14, 0b010);
-      PINSEL_ConfigPin(2, 15, 0b010);
-#else /* ifdef LPC177x_8x */
-      /* set P0.19 and P0.20 to I2C2 SDA and SCL */
-      LPC_PINCON->PINSEL1 |=((0x03<<6)|(0x03<<8));
-#endif /* ifdef LPC177x_8x */
+      nvicEnableVector(I2C1_IRQn,
+                       CORTEX_PRIORITY_MASK(LPC17xx_I2C1_IRQ_PRIORITY));
     }
 #endif /* LPC17xx_I2C_USE_I2C1 */
 
 #if LPC17xx_I2C_USE_I2C2
     if (&I2CD3 == i2cp) {
       LPC_SC->PCONP |= (1 << 26);
-#ifdef LPC177x_8x
-      /* set PIO2.30 and PIO2.31 to I2C2 SDA and SCL */
-      PINSEL_ConfigPin(2, 30, 0b010);
-      PINSEL_ConfigPin(2, 31, 0b010);
-#else /* ifdef LPC177x_8x */
-      /* set PIO0.10 and PIO0.11 to I2C2 SDA and SCL */
-      LPC_PINCON->PINSEL1 &= ~0x00F00000;
-      LPC_PINCON->PINSEL1 |= 0x00A00000;
-#endif /* ifdef LPC177x_8x */
+      nvicEnableVector(I2C2_IRQn,
+                       CORTEX_PRIORITY_MASK(LPC17xx_I2C2_IRQ_PRIORITY));
     }
 #endif /* LPC17xx_I2C_USE_I2C2 */
-
-    /*--- Clear flags ---*/
-    i2cp->i2c->CONCLR = I2CF_AA | I2CF_SI | I2CF_STA | I2CF_EN;
-
-    /* Setup I2C clock parameters.*/
-    i2cscl = (LPC17xx_PCLK/(i2cp->config->clock_timing));
-    if (i2cp->config->mode == I2C_FAST_MODE) {
-      div = 19;
-      mull = 13;
-      mulh = 6;
-    } else if (i2cp->config->mode == I2C_FAST_MODE_PLUS) {
-      div = 3;
-      mull = 2;
-      mulh = 1;
-    } else { /* i2cp->config->mode == I2C_STANDARD_MODE */
-      div = 2;
-      mull = 1;
-      mulh = 1;
-    }
-
-    i2cp->i2c->SCLH = (mulh * i2cscl) / div;
-    i2cp->i2c->SCLL = (mull * i2cscl) / div;
-
-#if LPC17xx_I2C_USE_I2C0
-    nvicEnableVector(I2C0_IRQn,
-                     CORTEX_PRIORITY_MASK(LPC17xx_I2C0_IRQ_PRIORITY));
-#endif
-#if LPC17xx_I2C_USE_I2C1
-    nvicEnableVector(I2C1_IRQn,
-                     CORTEX_PRIORITY_MASK(LPC17xx_I2C1_IRQ_PRIORITY));
-#endif
-#if LPC17xx_I2C_USE_I2C2
-    nvicEnableVector(I2C2_IRQn,
-                     CORTEX_PRIORITY_MASK(LPC17xx_I2C2_IRQ_PRIORITY));
-#endif
   }
+  /*--- Clear flags ---*/
+  i2cp->i2c->CONCLR = I2CF_AA | I2CF_SI | I2CF_STA | I2CF_EN;
+
+  /* Setup I2C clock parameters.*/
+  i2cscl = (LPC17xx_PCLK/(i2cp->config->clock_timing));
+  if (i2cp->config->mode == I2C_FAST_MODE) {
+    div = 19;
+    mull = 13;
+    mulh = 6;
+  } else if (i2cp->config->mode == I2C_FAST_MODE_PLUS) {
+    div = 3;
+    mull = 2;
+    mulh = 1;
+  } else { /* i2cp->config->mode == I2C_STANDARD_MODE */
+    div = 2;
+    mull = 1;
+    mulh = 1;
+  }
+
+  i2cp->i2c->SCLH = (mulh * i2cscl) / div;
+  i2cp->i2c->SCLL = (mull * i2cscl) / div;
 }
 
 /**

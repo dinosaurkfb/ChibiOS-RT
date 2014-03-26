@@ -16,7 +16,7 @@ static const I2CConfig i2ccfg = {
   400000
 };
 
-void EEPROMInit(I2CDriver *i2cp, I2CConfig *i2ccfgp) {
+void EEPROMInit(I2CDriver *i2cp, const I2CConfig *i2ccfgp) {
   /*
    * Starts I2C
    */
