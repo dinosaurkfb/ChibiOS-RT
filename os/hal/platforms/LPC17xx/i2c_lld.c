@@ -1,22 +1,29 @@
 /*
-  ChibiOS/RT - Copyright (C) 2006-2013 Giovanni Di Sirio
+    ChibiOS/RT - Copyright (C) 2006-2013 Giovanni Di Sirio
+    LPC17xx I2C driver - Copyright (C) 2013 Marcin Jokel
 
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
 
-  http://www.apache.org/licenses/LICENSE-2.0
+        http://www.apache.org/licenses/LICENSE-2.0
 
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
 */
 
+/*
+   Concepts and parts of this file have been contributed by Uladzimir Pylinsky
+   aka barthess.
+ */
+
+
 /**
- * @file    templates/i2c_lld.c
- * @brief   I2C Driver subsystem low level driver source template.
+ * @file    LPC17xx/i2c_lld.h
+ * @brief   LPC17xx I2C subsystem low level driver header.
  *
  * @addtogroup I2C
  * @{
@@ -26,72 +33,18 @@
 #include "hal.h"
 
 #if HAL_USE_I2C || defined(__DOXYGEN__)
-#include "pinsel_lld.h"
 
 /*===========================================================================*/
 /* Driver local definitions.                                                 */
 /*===========================================================================*/
-#define START_RETRY_NUM 10
+#define EVT_TX_START  1
+#define EVT_RX_START  2
+#define EVT_STOP      3
+#define EVT_IIC_ISR   4
+#define EVT_TIMEOUT   5
+#define EVT_FINISH    6
+#define EVT_DATA      7
 
-#define EVT_START 1
-#define EVT_STOP 2
-#define EVT_WAIT_STOP 3
-#define EVT_IIC_ISR 4
-#define EVT_TIMEOUT1 5
-#define EVT_TIMEOUT2 6
-#define EVT_TIMEOUT3 7
-#define EVT_FINISH 8
-#define EVT_RET 9
-#define EVT_TIME_ISR 10
-#define EVT_FINISH_BEGIN 11
-#define EVT_DATA  12
-
-#define I2C_STAT_IDLE 0
-#define I2C_STAT_WAIT_STOP 1
-#define I2C_STAT_WAIT_START 2
-#define I2C_STAT_RUN 3
-
-#define I2C_RETRY_INTERVAL 2000
-
-#define EnableI2CInt() NVIC_EnableIRQ(I2C0_IRQn + i2cp->offset)
-#define DisableI2CInt() NVIC_DisableIRQ(I2C0_IRQn + i2cp->offset)
-
-#define ResetI2CTimer() {if (chVTIsArmedI(&(i2cp->vt))) chVTResetI(&(i2cp->vt)); \
-    chVTSetI(&(i2cp->vt), US2ST(I2C_RETRY_INTERVAL), i2c_tm_cb, (void *)i2cp);}
-
-/*===========================================================================*/
-/* Driver exported variables.                                                */
-/*===========================================================================*/
-
-/**
- * @brief   I2C0 driver identifier.
- */
-#if LPC17xx_I2C_USE_I2C0 || defined(__DOXYGEN__)
-I2CDriver I2CD1;
-#endif
-
-/**
- * @brief   I2C1 driver identifier.
- */
-#if LPC17xx_I2C_USE_I2C1 || defined(__DOXYGEN__)
-I2CDriver I2CD2;
-#endif
-
-/**
- * @brief   I2C2 driver identifier.
- */
-#if LPC17xx_I2C_USE_I2C2 || defined(__DOXYGEN__)
-I2CDriver I2CD3;
-#endif
-
-/*===========================================================================*/
-/* Driver local variables and types.                                         */
-/*===========================================================================*/
-static void i2c_tm_cb(void *arg);
-
-/*===========================================================================*/
-/* Driver local functions.                                                   */
-/*===========================================================================*/
 #ifdef DEBUG_I2C
 struct I2CLog {
   int event;
@@ -114,30 +67,20 @@ static void AddLog(int event, uint32_t data)
 static char *StrEvt(int evt)
 {
   switch(evt) {
-    case EVT_START:
-      return "start    ";
+    case EVT_TX_START:
+      return "tx_start     ";
+    case EVT_RX_START:
+      return "rx_start     ";
     case EVT_STOP:
-      return "stop     ";
-    case EVT_WAIT_STOP:
-      return "wait stop";
+      return "stop         ";
     case EVT_IIC_ISR:
-      return "iic isr  ";
-    case EVT_TIME_ISR:
-      return "time isr ";
-    case EVT_TIMEOUT1:
-      return "stop timeout1 ";
-    case EVT_TIMEOUT2:
-      return "start timeout2 ";
-    case EVT_TIMEOUT3:
-      return "run timeout3 ";
+      return "iic isr      ";
+    case EVT_TIMEOUT:
+      return "stop timeout ";
     case EVT_FINISH:
-      return "finish   ";
-    case EVT_RET:
-      return "return   ";
-    case EVT_FINISH_BEGIN:
-      return "enter finish";
+      return "finish       ";
     case EVT_DATA:
-      return "DATA ";
+      return "DATA         ";
   }
   return     "         ";
 }
@@ -156,293 +99,239 @@ void I2C_Dump(void)
 void I2C_Dump(void) {}
 #endif
 
-static void dummy(void *arg) {
-  (void)arg;
-}
+/*===========================================================================*/
+/* Driver constants.                                                         */
+/*===========================================================================*/
 
-static void StartI2C(I2CDriver *i2cp)
-{
-  i2cp->rwBytes = 0;
-  i2cp->errors = I2CD_NO_ERROR;
+/*===========================================================================*/
+/* Driver exported variables.                                                */
+/*===========================================================================*/
 
-  /* Enable I2C interface, and start i2c in master mode */
-  i2cp->reg.stat = I2C_STAT_WAIT_START;
-  i2cp->i2c->CONCLR = I2CF_EN | I2CF_STA | I2CF_SI | I2CF_AA;
-  i2cp->i2c->CONSET = I2CF_EN | I2CF_STA;
-  EnableI2CInt();
-  AddLog(EVT_START, 0);
-}
+#if LPC17xx_I2C_USE_I2C0 || defined(__DOXYGEN__)
+/** @brief I2C1 driver identifier.*/
+I2CDriver I2CD1;
+#endif
 
-static void TryStartI2C(I2CDriver *i2cp)
-{
-  /* Transmit a stop bit to recover*/
-  if( (i2cp->i2c->CONSET & I2CF_STO) ) {
-    i2cp->reg.stat = I2C_STAT_WAIT_STOP;
-    AddLog(EVT_WAIT_STOP, 0);
-  }
-  else
-    StartI2C(i2cp);
-}
+#if LPC17xx_I2C_USE_I2C1 || defined(__DOXYGEN__)
+/** @brief I2C2 driver identifier.*/
+I2CDriver I2CD2;
+#endif
 
-static void TryReStartI2C(I2CDriver *i2cp)
-{
-  AddLog(EVT_STOP, 0);
-  i2cp->i2c->CONCLR = I2CF_STA | I2CF_SI;
-  i2cp->i2c->CONSET = I2CF_STO;
-  /* Transmit a stop bit to recover*/
-  if( (i2cp->i2c->CONSET & I2CF_STO) ) {
-    /* Recover failed */
-    DisableI2CInt();
-    i2cp->reg.stat = I2C_STAT_WAIT_STOP;
-    AddLog(EVT_WAIT_STOP, 0);
-  }
-  else
-    /* Recovered, start again */
-    StartI2C(i2cp);
-}
+#if LPC17xx_I2C_USE_I2C2 || defined(__DOXYGEN__)
+/** @brief I2C3 driver identifier.*/
+I2CDriver I2CD3;
+#endif
 
-static void FinishI2C(I2CDriver *i2cp, int err)
-{
-  /* Release the binary semaphore, so the wait can return */
-  chBSemSignalI(&(i2cp->done));
-  AddLog(EVT_FINISH_BEGIN, 0);
-  i2cp->reg.stat = 0;
-  i2cp->errors = err;
+/*===========================================================================*/
+/* Driver local variables.                                                   */
+/*===========================================================================*/
 
-  if (chVTIsArmedI(&(i2cp->vt))) {
-    chVTResetI(&(i2cp->vt));
-  }
-  DisableI2CInt();
+/*===========================================================================*/
+/* Driver local functions.                                                   */
+/*===========================================================================*/
 
-  /* Stop the bus */
-  if(err != I2CD_NO_ERROR || i2cp->reg.bStop) {
-    AddLog(EVT_STOP, 0);
-    i2cp->i2c->CONCLR = I2CF_STA | I2CF_SI | I2CF_AA;
-    i2cp->i2c->CONSET = I2CF_STO;
-  }
-
-  AddLog(EVT_FINISH, 0);
-}
-
-/*
- * I2C timer callback.
+/**
+ * @brief   Wakes up the waiting thread.
+ *
+ * @param[in] i2cp      pointer to the @p I2CDriver object
+ * @param[in] msg       wakeup message
+ *
+ * @notapi
  */
-static void i2c_tm_cb(void *arg) {
-  I2CDriver *i2cp =(I2CDriver *)arg;
-  chSysLockFromIsr();
-  ResetI2CTimer();
-  AddLog(EVT_TIME_ISR, 0);
-
-  switch(i2cp->reg.stat) {
-    case I2C_STAT_WAIT_STOP:
-      AddLog(EVT_TIMEOUT1, 0);
-      if( i2cp->i2c->CONSET & I2CF_STO ) {
-        FinishI2C(i2cp, E_I2C_TIMEOUT2);
-      } else {
-        StartI2C(i2cp);
-      }
-      break;
-    case I2C_STAT_WAIT_START:
-      AddLog(EVT_TIMEOUT2, 0);
-      if(i2cp->reg.retry_start > 0) {
-        i2cp->reg.retry_start--;
-        TryReStartI2C(i2cp);
-      }
-      else {
-        FinishI2C(i2cp, E_I2C_TIMEOUT);
-      }
-      break;
-    case I2C_STAT_RUN:
-      AddLog(EVT_TIMEOUT3, 0);
-      if(i2cp->reg.retry_start > 0) {
-        i2cp->reg.retry_start--;
-        TryReStartI2C(i2cp);
-      }
-      else {
-        FinishI2C(i2cp, E_I2C_TIMEOUT1);
-      }
-      break;
+#define wakeup_isr(i2cp, msg) {                                         \
+    chSysLockFromIsr();                                                 \
+    if ((i2cp)->thread != NULL) {                                       \
+      Thread *tp = (i2cp)->thread;                                      \
+      (i2cp)->thread = NULL;                                            \
+      tp->p_u.rdymsg = (msg);                                           \
+      chSchReadyI(tp);                                                  \
+    }                                                                   \
+    chSysUnlockFromIsr();                                               \
   }
 
+/**
+ * @brief   Handling of stalled I2C transactions.
+ *
+ * @param[in] i2cp      pointer to the @p I2CDriver object
+ *
+ * @notapi
+ */
+static void i2c_lld_safety_timeout(void *p) {
+  I2CDriver *i2cp = (I2CDriver *)p;
+
+  AddLog(EVT_TIMEOUT1, 0);
+  chSysLockFromIsr();
+  if (i2cp->thread) {
+    Thread *tp = i2cp->thread;
+    i2cp->thread = NULL;
+    tp->p_u.rdymsg = RDY_TIMEOUT;
+    chSchReadyI(tp);
+  }
   chSysUnlockFromIsr();
 }
 
-/* This function is for internal use. */
-int Locked_I2C_Request(I2CDriver *i2cp, uint8_t devAddr, uint8_t *buf, int len, int bRead, int bStop, int retry, int needAck)
-{
-  chSysLock();
-#ifdef DEBUG_I2C
-  s_log_idx=0;
-#endif
+/**
+ * @brief   I2C error handler.
+ *
+ * @param[in] i2cp      pointer to the @p I2CDriver object
+ *
+ * @notapi
+ */
+static void i2c_lld_serve_error_interrupt(I2CDriver *i2cp, uint32_t status) {
+  i2cflags_t error = 0;
 
-  i2cp->reg.devAddr = devAddr;
-  if (bRead == I2C_B_READ) {
-    i2cp->reg.rxbuf = buf;
-  } else {
-    i2cp->reg.txbuf = buf;
+  switch (status) {
+    case I2C_STATE_ARB_LOST:
+      error = I2CD_ARBITRATION_LOST;
+      break;
+    case I2C_STATE_BUS_ERROR:
+      error = I2CD_BUS_ERROR;
+      break;
+    case I2C_STATE_MS_SLAR_NACK:
+    case I2C_STATE_MS_TDAT_NACK:
+    case I2C_STATE_MS_SLAW_NACK:
+      error = I2CD_ACK_FAILURE ;
+      break;
   }
-  i2cp->reg.len = len;
-  i2cp->reg.bRead = bRead;
-  i2cp->reg.bStop = bStop;
-  i2cp->reg.retry_start = START_RETRY_NUM;
-  i2cp->reg.retry_run = retry;
-  i2cp->reg.needAck = needAck;
-  chBSemResetI(&(i2cp->done), TRUE);
 
-  if (chVTIsArmedI(&(i2cp->vt))) {
-    chVTResetI(&(i2cp->vt));
+  /* If some error has been identified then sends wakes the waiting thread.*/
+  i2cp->errors = error;
+  AddLog(EVT_STOP, RDY_RESET * -1);
+  wakeup_isr(i2cp, RDY_RESET);
+}
+
+/**
+ * @brief   I2C serve interrupt handler.
+ *
+ * @param[in] i2cp      pointer to the @p I2CDriver object
+ *
+ * @notapi
+ */
+static void i2c_lld_serve_interrupt(I2CDriver *i2cp) {
+  uint32_t status;
+  LPC_I2C_TypeDef *dp = i2cp->i2c;
+
+  status = dp->STAT;
+  AddLog(EVT_IIC_ISR, status);
+  switch(status) {
+    case I2C_STATE_MS_START:    /*  A START condition has been transmitted. */
+      if (i2cp->txbytes > 0) {
+        dp->DAT = i2cp->addr;                  /* Write slave address with WR bit. */
+        AddLog(EVT_DATA, i2cp->addr);
+      }
+      else {
+        dp->DAT = i2cp->addr | I2C_RD_BIT;     /* Write slave address with RD bit. */
+        AddLog(EVT_DATA, i2cp->addr | I2C_RD_BIT);
+      }
+
+      dp->CONCLR = I2C_CONCLR_STAC | I2C_CONCLR_SIC;   /* Clear START and SI bit. */
+      break;
+
+    case I2C_STATE_MS_SLAR_NACK: /* NOT ACK has been received, Master will be transmitted STOP. */
+    case I2C_STATE_MS_TDAT_NACK: /* NOT ACK has been received, Master will be transmitted STOP. */
+    case I2C_STATE_MS_SLAW_NACK: /* NOT ACK has been received, Master will be transmitted STOP. */
+      dp->CONSET = I2C_CONSET_STO;             /* Set STOP bit. */
+      dp->CONCLR = I2C_CONCLR_SIC;             /* Clear SI bit. */
+      i2c_lld_serve_error_interrupt(i2cp, status);
+      break;
+
+    case I2C_STATE_MS_SLAW_ACK: /* SLA + W has been transmitted, ACK has been received. */
+    case I2C_STATE_MS_TDAT_ACK: /* Data byte has been transmitted, ACK has been received. */
+      if (i2cp->txbytes > 0) {
+        dp->DAT = *i2cp->txbuf++;               /* Write data. */
+        i2cp->txbytes--;
+        AddLog(EVT_DATA, *(i2cp->txbuf-1));
+      }
+      else {
+        if (i2cp->rxbytes > 0) {
+          dp->CONSET = I2C_CONSET_STO | I2C_CONSET_STA; /* Set START and STOP bit. */
+          AddLog(EVT_RX_START, i2cp->rxbytes);
+        } /* STOP bit will be transmit, then START bit. */
+        else {
+          dp->CONSET = I2C_CONSET_STO;         /* Set STOP bit. */
+          AddLog(EVT_STOP, RDY_OK);
+          wakeup_isr(i2cp, RDY_OK);
+        }
+      }
+      dp->CONCLR = I2C_CONCLR_SIC;             /* Clear SI bit. */
+      break;
+
+    case I2C_STATE_MS_SLAR_ACK: /* SLA + R has been transmitted, ACK has been received. */
+    case I2C_STATE_MS_RDAT_ACK: /* Data byte has been received, ACK has been returned. */
+      if (status == I2C_STATE_MS_RDAT_ACK) {
+        *i2cp->rxbuf++ = dp->DAT;                /* Read data */
+        i2cp->rxbytes--;
+        AddLog(EVT_DATA, *(i2cp->rxbuf-1));
+      }
+      if (i2cp->rxbytes == 1) {
+        dp->CONCLR = I2C_CONCLR_SIC | I2C_CONCLR_AAC; /* Clear SI and ACK bit. */
+      }
+      else {
+        dp->CONSET = I2C_CONSET_AA;            /* Set ACK bit. */
+        dp->CONCLR = I2C_CONCLR_SIC;           /* Clear SI bit. */
+      }
+      break;
+
+    case I2C_STATE_MS_RDAT_NACK: /* Data byte has been received, NOT ACK has been returned. */
+      *i2cp->rxbuf++ = dp->DAT;                /* Read data. */
+      i2cp->rxbytes--;
+      AddLog(EVT_DATA, *(i2cp->rxbuf-1));
+      dp->CONSET = I2C_CONSET_STO;             /* Set STOP bit. */
+      dp->CONCLR = I2C_CONCLR_SIC;             /* Clear SI bit. */
+      AddLog(EVT_STOP, RDY_OK);
+      wakeup_isr(i2cp, RDY_OK);
+      break;
+
+    case I2C_STATE_BUS_ERROR: /* Bus error. */
+    case I2C_STATE_ARB_LOST:  /* Arbitration lost. */
+      dp->CONCLR = I2C_CONCLR_SIC;             /* Clear SI bit. */
+      i2c_lld_serve_error_interrupt(i2cp, status);
+      break;
   }
-  chVTSetI(&(i2cp->vt), US2ST(I2C_RETRY_INTERVAL), i2c_tm_cb, (void *)i2cp);
 
-  TryStartI2C(i2cp);
-  chSysUnlock();
-
-  int ret = chBSemWaitTimeoutS(&(i2cp->done), MS2ST(100));
-  AddLog(EVT_RET, ret);
-
-  ret = (i2cp->errors != I2CD_NO_ERROR) ? i2cp->errors : I2CD_NO_ERROR;
-  AddLog(EVT_RET, ret);
-  return ret;
 }
 
 /*===========================================================================*/
 /* Driver interrupt handlers.                                                */
 /*===========================================================================*/
-/**
- * @brief   Common IRQ handler.
- * @note    Tries hard to clear all the pending interrupt sources, we don't
- *          want to go through the whole ISR and have another interrupt soon
- *          after.
- *
- * @param[in] u         pointer to an I2C I/O block
- * @param[in] sdp       communication channel associated to the I2C
- */
-static void serve_interrupt(I2CDriver *i2cp) {
-  chSysLockFromIsr();
-  int32_t err = 0;
-  ResetI2CTimer();
-
-  uint8_t stat = i2cp->i2c->STAT;
-  AddLog(EVT_IIC_ISR, stat);
-
-  switch(stat) {
-    case 0x00:
-      err = I2CD_BUS_ERROR;
-      break;
-
-    case 0x08: /* START sent */
-    case 0x10: /* ReSTART sent */
-      i2cp->reg.stat = I2C_STAT_RUN;
-      AddLog(EVT_DATA, (i2cp->reg.devAddr<<1) | i2cp->reg.bRead);
-      /* send devAddr + R/W */
-      i2cp->i2c->DAT = (i2cp->reg.devAddr<<1) | i2cp->reg.bRead;
-      i2cp->i2c->CONCLR = I2CF_STA | I2CF_SI;
-      break;
-
-    case 0x20: /* addr+W sent, NOT ACK has been received */
-    case 0x30: /* data sent£¬NOT ACK has been received */
-      if(i2cp->reg.needAck) {
-        err = I2CD_ACK_FAILURE;
-        break;
-      }
-
-    case 0x18: /* addr+W sent, ACK has been received */
-    case 0x28: /* data sent£¬ACK has been received */
-      if(i2cp->rwBytes < i2cp->reg.len) {
-        /* AddLog(EVT_DATA, i2cp->reg.txbuf[i2cp->rwBytes]); */
-        i2cp->i2c->DAT = i2cp->reg.txbuf[i2cp->rwBytes++];
-        i2cp->i2c->CONCLR = I2CF_STA | I2CF_SI;
-      }
-      else {
-        /* Transmit finish */
-        FinishI2C(i2cp, I2CD_NO_ERROR);
-      }
-      break;
-
-    case 0x38: /*arbitration lost in SLA+R/W or data bytes */
-      err = I2CD_ARBITRATION_LOST;
-      break;
-
-    case 0x48: /* addr+R transmitted, NOT ACK has been received */
-      if(i2cp->reg.needAck) {
-        err = I2CD_ACK_FAILURE;
-        break;
-      }
-
-    case 0x40: /* addr+R transmitted, ACK has been received */
-      if(i2cp->reg.len > 1) {
-        /* Acknowledge the next received byte */
-        i2cp->i2c->CONSET = I2CF_AA;
-      }
-      i2cp->i2c->CONCLR = I2CF_STA | I2CF_SI;
-      break;
-
-    case 0x50: /* Data received, ACK has been returned */
-      /* AddLog(EVT_DATA, i2cp->rwBytes); */
-      i2cp->reg.rxbuf[i2cp->rwBytes++] = (uint8_t)(i2cp->i2c->DAT);
-      i2cp->i2c->CONCLR = (i2cp->rwBytes == i2cp->reg.len-1) ? (I2CF_STA|I2CF_SI|I2CF_AA) : (I2CF_STA|I2CF_SI);
-      break;
-
-    case 0x58: /* Data received, NOT ACK has been returned */
-      i2cp->reg.rxbuf[i2cp->rwBytes++] = (uint8_t)(i2cp->i2c->DAT);
-      FinishI2C(i2cp, I2CD_NO_ERROR);
-      break;
-
-    default:
-      err = E_I2C_STAT;
-  }
-
-  if (err != I2CD_NO_ERROR) {
-    if (i2cp->reg.retry_run>0) {
-      AddLog(EVT_DATA, i2cp->reg.retry_run);
-      i2cp->reg.retry_run--;
-      i2cp->reg.retry_start = START_RETRY_NUM;
-      TryReStartI2C(i2cp);
-    } else {
-      FinishI2C(i2cp, err);
-    }
-  }
-  chSysUnlockFromIsr();
-}
-
-/**
- * @brief   I2C0 IRQ handler.
- *
- * @isr
- */
 #if LPC17xx_I2C_USE_I2C0 || defined(__DOXYGEN__)
+/**
+ * @brief   I2C0 event interrupt handler.
+ *
+ * @notapi
+ */
 CH_IRQ_HANDLER(Vector68) {
 
   CH_IRQ_PROLOGUE();
-  serve_interrupt(&I2CD1);
+  i2c_lld_serve_interrupt(&I2CD1);
   CH_IRQ_EPILOGUE();
 }
 #endif
 
-/**
- * @brief   I2C1 IRQ handler.
- *
- * @isr
- */
 #if LPC17xx_I2C_USE_I2C1 || defined(__DOXYGEN__)
+/**
+ * @brief   I2C1 event interrupt handler.
+ *
+ * @notapi
+ */
 CH_IRQ_HANDLER(Vector6C) {
 
   CH_IRQ_PROLOGUE();
-  serve_interrupt(&I2CD2);
+  i2c_lld_serve_interrupt(&I2CD2);
   CH_IRQ_EPILOGUE();
 }
 #endif
 
-/**
- * @brief   I2C2 IRQ handler.
- *
- * @isr
- */
 #if LPC17xx_I2C_USE_I2C2 || defined(__DOXYGEN__)
+/**
+ * @brief   I2C2 event interrupt handler.
+ *
+ * @notapi
+ */
 CH_IRQ_HANDLER(Vector70) {
 
   CH_IRQ_PROLOGUE();
-  serve_interrupt(&I2CD3);
+  i2c_lld_serve_interrupt(&I2CD3);
   CH_IRQ_EPILOGUE();
 }
 #endif
@@ -457,23 +346,24 @@ CH_IRQ_HANDLER(Vector70) {
  * @notapi
  */
 void i2c_lld_init(void) {
+
 #if LPC17xx_I2C_USE_I2C0
   i2cObjectInit(&I2CD1);
-  I2CD1.i2c = (LPC_I2C_TypeDef*) LPC_I2C0;
-  I2CD1.offset = i2c0;
-#endif /* LPC17xx_I2C_USE_I2C0 */
+  I2CD1.thread = NULL;
+  I2CD1.i2c    = LPC_I2C0;
+#endif
 
 #if LPC17xx_I2C_USE_I2C1
   i2cObjectInit(&I2CD2);
-  I2CD2.i2c = (LPC_I2C_TypeDef*) LPC_I2C1;
-  I2CD2.offset = i2c1;
-#endif /* LPC17xx_I2C_USE_I2C1 */
+  I2CD2.thread = NULL;
+  I2CD2.i2c    = LPC_I2C1;
+#endif
 
 #if LPC17xx_I2C_USE_I2C2
   i2cObjectInit(&I2CD3);
-  I2CD3.i2c = (LPC_I2C_TypeDef*) LPC_I2C2;
-  I2CD3.offset = i2c2;
-#endif /* LPC17xx_I2C_USE_I2C2 */
+  I2CD3.thread = NULL;
+  I2CD3.i2c    = LPC_I2C2;
+#endif
 }
 
 /**
@@ -484,38 +374,40 @@ void i2c_lld_init(void) {
  * @notapi
  */
 void i2c_lld_start(I2CDriver *i2cp) {
-  chBSemInit(&(i2cp->done), FALSE);
+
   uint32_t i2cscl;
   uint32_t mulh, mull, div;
+  LPC_I2C_TypeDef *dp = i2cp->i2c;
 
+  /* If in stopped state then enables the I2C clock. */
   if (i2cp->state == I2C_STOP) {
-    /* Enables the peripheral.*/
 #if LPC17xx_I2C_USE_I2C0
     if (&I2CD1 == i2cp) {
-      LPC_SC->PCONP |= (1 << 7);
+      LPC_SC->PCONP |= (1UL << 7);
       nvicEnableVector(I2C0_IRQn,
-                       CORTEX_PRIORITY_MASK(LPC17xx_I2C0_IRQ_PRIORITY));
+            CORTEX_PRIORITY_MASK(LPC17xx_I2C_I2C0_IRQ_PRIORITY));
     }
-#endif /* LPC17xx_I2C_USE_I2C0 */
+#endif
 
 #if LPC17xx_I2C_USE_I2C1
     if (&I2CD2 == i2cp) {
-      LPC_SC->PCONP |=(1<<19);
+      LPC_SC->PCONP |= (1UL << 19);
       nvicEnableVector(I2C1_IRQn,
-                       CORTEX_PRIORITY_MASK(LPC17xx_I2C1_IRQ_PRIORITY));
+            CORTEX_PRIORITY_MASK(LPC17xx_I2C_I2C1_IRQ_PRIORITY));
     }
-#endif /* LPC17xx_I2C_USE_I2C1 */
+#endif
 
 #if LPC17xx_I2C_USE_I2C2
     if (&I2CD3 == i2cp) {
-      LPC_SC->PCONP |= (1 << 26);
+      LPC_SC->PCONP |= (1UL << 26);
       nvicEnableVector(I2C2_IRQn,
-                       CORTEX_PRIORITY_MASK(LPC17xx_I2C2_IRQ_PRIORITY));
+            CORTEX_PRIORITY_MASK(LPC17xx_I2C_I2C2_IRQ_PRIORITY));
     }
-#endif /* LPC17xx_I2C_USE_I2C2 */
+#endif
   }
-  /*--- Clear flags ---*/
-  i2cp->i2c->CONCLR = I2CF_AA | I2CF_SI | I2CF_STA | I2CF_EN;
+
+  /* Make sure I2C peripheral is disabled */
+  dp->CONCLR = I2C_CONCLR_ENC;
 
   /* Setup I2C clock parameters.*/
   i2cscl = (LPC17xx_PCLK/(i2cp->config->clock_timing));
@@ -533,8 +425,12 @@ void i2c_lld_start(I2CDriver *i2cp) {
     mulh = 1;
   }
 
-  i2cp->i2c->SCLH = (mulh * i2cscl) / div;
-  i2cp->i2c->SCLL = (mull * i2cscl) / div;
+  dp->SCLH = (mulh * i2cscl) / div;
+  dp->SCLL = (mull * i2cscl) / div;
+
+  /* Enable I2C.*/
+  dp->CONSET |= I2C_CONSET_EN;
+
 }
 
 /**
@@ -546,37 +442,38 @@ void i2c_lld_start(I2CDriver *i2cp) {
  */
 void i2c_lld_stop(I2CDriver *i2cp) {
 
+  /* If not in stopped state then disables the I2C clock.*/
   if (i2cp->state != I2C_STOP) {
-    /* Resets the peripheral.*/
 
-    /* Disables the peripheral.*/
+    /* I2C disable.*/
+    i2cp->i2c->CONCLR = I2C_CONCLR_ENC;
 #if LPC17xx_I2C_USE_I2C0
-    if (&I2CD1 == i2cp) {
-      LPC_SC->PCONP &= ~(1 << 7);
-      nvicDisableVector(I2C0_IRQn);
-    }
-#endif /* LPC17xx_I2C_USE_I2C0 */
+ if (&I2CD1 == i2cp) {
+   nvicDisableVector(I2C0_IRQn);
+   LPC_SC->PCONP &= ~(1UL << 7);
+ }
+#endif
 
 #if LPC17xx_I2C_USE_I2C1
-    if (&I2CD2 == i2cp) {
-      LPC_SC->PCONP &= ~(1 << 19);
-      nvicDisableVector(I2C1_IRQn);
-    }
-#endif /* LPC17xx_I2C_USE_I2C1 */
+ if (&I2CD2 == i2cp) {
+   nvicDisableVector(I2C1_IRQn);
+   LPC_SC->PCONP &= ~(1UL << 19);
+ }
+#endif
 
 #if LPC17xx_I2C_USE_I2C2
-    if (&I2CD3 == i2cp) {
-      LPC_SC->PCONP &= ~(1 << 26);
-      nvicDisableVector(I2C2_IRQn);
-    }
-#endif /* LPC17xx_I2C_USE_I2C2 */
+ if (&I2CD3 == i2cp) {
+   nvicDisableVector(I2C2_IRQn);
+   LPC_SC->PCONP &= ~(1UL << 26);
+ }
+#endif
   }
 }
 
 /**
  * @brief   Receives data via the I2C bus as master.
- * @details
- *
+ * @details Number of receiving bytes must be more than 1 on STM32F1x. This is
+ *          hardware restriction.
  *
  * @param[in] i2cp      pointer to the @p I2CDriver object
  * @param[in] addr      slave device address
@@ -599,47 +496,44 @@ void i2c_lld_stop(I2CDriver *i2cp) {
 msg_t i2c_lld_master_receive_timeout(I2CDriver *i2cp, i2caddr_t addr,
                                      uint8_t *rxbuf, size_t rxbytes,
                                      systime_t timeout) {
+  LPC_I2C_TypeDef *dp = i2cp->i2c;
+  VirtualTimer vt;
 
-  static VirtualTimer vt;
-  chVTSetI(&vt, timeout, dummy, NULL);
+  i2cp->addr = addr << 1;
+  /* Global timeout for the whole operation.*/
+  if (timeout != TIME_INFINITE)
+    chVTSetI(&vt, timeout, i2c_lld_safety_timeout, (void *)i2cp);
 
-  /* These settings won't be changed until return. */
-  i2cp->reg.devAddr = addr;
-  i2cp->reg.rxbuf = rxbuf;
-  i2cp->reg.len = rxbytes;
-  i2cp->reg.bRead = I2C_B_READ;
-  i2cp->reg.bStop = I2C_B_STOP1;
-  i2cp->reg.needAck = I2C_B_NEEDACK;
-
-  while (1) {
-    /* Reset all retry settings */
-    i2cp->reg.retry_start = START_RETRY_NUM;
-    i2cp->reg.retry_run = 2;
+  /* Releases the lock from high level driver.*/
+  chSysUnlock();
 
 #ifdef DEBUG_I2C
-    s_log_idx=0;
+  s_log_idx = 0;
 #endif
-    chBSemResetI(&(i2cp->done), TRUE);
+  /* Initializes driver fields */
+  i2cp->errors = 0;
+  i2cp->rxbuf = rxbuf;
+  i2cp->rxbytes = rxbytes;
 
-    if (chVTIsArmedI(&(i2cp->vt))) {
-      chVTResetI(&(i2cp->vt));
-    }
-    chVTSetI(&(i2cp->vt), US2ST(I2C_RETRY_INTERVAL), i2c_tm_cb, (void *)i2cp);
+  /* This lock will be released in high level driver.*/
+  chSysLock();
 
-    TryStartI2C(i2cp);
+  /* Atomic check on the timer in order to make sure that a timeout didn't
+     happen outside the critical zone.*/
+  if ((timeout != TIME_INFINITE) && !chVTIsArmedI(&vt))
+    return RDY_TIMEOUT;
 
-    /* Wait I2C finish */
-    chBSemWaitS(&(i2cp->done));
-    if (i2cp->errors != I2CD_NO_ERROR) {
-      if (!chVTIsArmedI(&vt)) {
-        AddLog(EVT_RET, i2cp->errors);
-        return RDY_TIMEOUT;
-      }
-    } else {
-      AddLog(EVT_RET, RDY_OK);
-      return RDY_OK;
-    }
-  }
+  /* Starts the operation.*/
+  dp->CONSET = I2C_CONSET_STA;
+  AddLog(EVT_RX_START, rxbytes);
+
+  /* Waits for the operation completion or a timeout.*/
+  i2cp->thread = chThdSelf();
+  chSchGoSleepS(THD_STATE_SUSPENDED);
+  if ((timeout != TIME_INFINITE) && chVTIsArmedI(&vt))
+    chVTResetI(&vt);
+
+  return chThdSelf()->p_u.rdymsg;
 }
 
 /**
@@ -671,59 +565,47 @@ msg_t i2c_lld_master_transmit_timeout(I2CDriver *i2cp, i2caddr_t addr,
                                       const uint8_t *txbuf, size_t txbytes,
                                       uint8_t *rxbuf, size_t rxbytes,
                                       systime_t timeout) {
+  LPC_I2C_TypeDef *dp = i2cp->i2c;
+  VirtualTimer vt;
 
-  static VirtualTimer vt;
-  chVTSetI(&vt, timeout, dummy, NULL);
+  i2cp->addr = addr << 1;
+  /* Global timeout for the whole operation.*/
+  if (timeout != TIME_INFINITE)
+    chVTSetI(&vt, timeout, i2c_lld_safety_timeout, (void *)i2cp);
 
-  /* These settings won't be changed until return. */
-  i2cp->reg.devAddr = addr;
-  i2cp->reg.txbuf = txbuf;
-  i2cp->reg.len = txbytes;
-  i2cp->reg.bRead = I2C_B_WRITE;
-  i2cp->reg.bStop = I2C_B_STOP1;
-  i2cp->reg.needAck = I2C_B_NEEDACK;
-  chBSemResetI(&(i2cp->done), TRUE);
-  volatile uint32_t i = 0;
-
-  while (1) {
-    /* Reset all retry settings */
-    i2cp->reg.retry_start = START_RETRY_NUM;
-    i2cp->reg.retry_run = 2;
+  /* Releases the lock from high level driver.*/
+  chSysUnlock();
 
 #ifdef DEBUG_I2C
-    s_log_idx=0;
+  s_log_idx = 0;
 #endif
+  /* Initializes driver fields */
+  i2cp->errors = 0;
+  i2cp->txbuf = txbuf;
+  i2cp->txbytes = txbytes;
+  i2cp->rxbuf = rxbuf;
+  i2cp->rxbytes = rxbytes;
 
-    if (chVTIsArmedI(&(i2cp->vt))) {
-      chVTResetI(&(i2cp->vt));
-    }
-    chVTSetI(&(i2cp->vt), US2ST(I2C_RETRY_INTERVAL), i2c_tm_cb, (void *)i2cp);
+  /* This lock will be released in high level driver.*/
+  chSysLock();
 
-    TryStartI2C(i2cp);
-    chSysUnlock();
-    /* Wait I2C finish */
-    chBSemWait(&(i2cp->done));
-    for (i = 0; i < 5000; i++);
-    chSysLock();
-    if (i2cp->errors != I2CD_NO_ERROR) {
-      if (!chVTIsArmedI(&vt)) {
-        AddLog(EVT_RET, i2cp->errors);
-        return RDY_TIMEOUT;
-      }
-    } else {
-      /* Continue to receive from I2C bus */
-      if (rxbytes != 0) {
-        i2cp->reg.rxbuf = rxbuf;
-        i2cp->reg.len = rxbytes;
-        i2cp->reg.bRead = I2C_B_READ;
-        /* Receiving process has been started. */
-        rxbytes = 0;
-        continue;
-      }
-      AddLog(EVT_RET, RDY_OK);
-      return RDY_OK;
-    }
-  }
+  /* Atomic check on the timer in order to make sure that a timeout didn't
+     happen outside the critical zone.*/
+  if ((timeout != TIME_INFINITE) && !chVTIsArmedI(&vt))
+    return RDY_TIMEOUT;
+
+  /* Starts the operation.*/
+  dp->CONSET = I2C_CONSET_STA;
+  AddLog(EVT_TX_START, txbytes);
+
+  /* Waits for the operation completion or a timeout.*/
+  i2cp->thread = chThdSelf();
+  chSchGoSleepS(THD_STATE_SUSPENDED);
+
+  if ((timeout != TIME_INFINITE) && chVTIsArmedI(&vt))
+    chVTResetI(&vt);
+
+  return chThdSelf()->p_u.rdymsg;
 }
 
 #endif /* HAL_USE_I2C */

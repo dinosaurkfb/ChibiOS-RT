@@ -1,5 +1,6 @@
 /*
     ChibiOS/RT - Copyright (C) 2006-2013 Giovanni Di Sirio
+    LPC17xx I2C driver - Copyright (C) 2013 Marcin Jokel
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -13,10 +14,14 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 */
+/*
+   Concepts and parts of this file have been contributed by Uladzimir Pylinsky
+   aka barthess.
+ */
 
 /**
- * @file    templates/i2c_lld.h
- * @brief   I2C Driver subsystem low level driver header template.
+ * @file    LPC17xx/i2c_lld.h
+ * @brief   LPC17xx I2C subsystem low level driver header.
  *
  * @addtogroup I2C
  * @{
@@ -32,101 +37,94 @@
 /*===========================================================================*/
 #define DEBUG_I2C  TRUE
 
-#define I2CF_AA                 (1<<2)
-#define I2CF_SI                 (1<<3)
-#define I2CF_STO                (1<<4)
-#define I2CF_STA                (1<<5)
-#define I2CF_EN                 (1<<6)
-#define I2CF_CLR_ALL            0x2C
+#define I2C_CONSET_AA               0x04  /* Assert acknowledge flag. */
+#define I2C_CONSET_SI               0x08  /* I2C interrupt flag. */
+#define I2C_CONSET_STO              0x10  /* STOP flag. */
+#define I2C_CONSET_STA              0x20  /* START flag. */
+#define I2C_CONSET_EN               0x40  /* I2C interface enable. */
 
-#define I2DAT_I2C               0x00000000  /* I2C Data Reg */
-#define I2ADR_I2C               0x00000000  /* I2C Slave Address Reg */
-#define I2SCLH_SCLH             (LPC17xx_PCLK/800000) /*I2C clock 400 khz */
-#define I2SCLL_SCLL             (LPC17xx_PCLK/800000) /*I2C clock 400 khz */
+#define I2C_CONCLR_AAC              0x04  /* Assert acknowledge Clear bit. */
+#define I2C_CONCLR_SIC              0x08  /* I2C interrupt Clear bit. */
+#define I2C_CONCLR_STAC             0x20  /* START flag Clear bit. */
+#define I2C_CONCLR_ENC              0x40  /* I2C interface Disable bit. */
 
+#define I2C_WR_BIT                  0x00
+#define I2C_RD_BIT                  0x01
 
-/*I2C */
-#define E_I2C_STAT           1003
-#define E_I2C_TIMEOUT        1004
-#define E_I2C_TIMEOUT1       1005
-#define E_I2C_TIMEOUT2       1006
+#define I2C_STATE_MS_START          0x08
+#define I2C_STATE_MS_RSTART         0x10
+#define I2C_STATE_MS_SLAW_ACK       0x18
+#define I2C_STATE_MS_SLAW_NACK      0x20
+#define I2C_STATE_MS_TDAT_ACK       0x28
+#define I2C_STATE_MS_TDAT_NACK      0x30
+#define I2C_STATE_ARB_LOST          0x38
 
-#define I2C_B_READ     1
-#define I2C_B_WRITE    0
-#define I2C_B_STOP1    1
-#define I2C_B_STOP0    0
-#define I2C_B_NEEDACK  1
-#define I2C_B_NOACK    0
+#define I2C_STATE_MS_SLAR_ACK       0x40
+#define I2C_STATE_MS_SLAR_NACK      0x48
+#define I2C_STATE_MS_RDAT_ACK       0x50
+#define I2C_STATE_MS_RDAT_NACK      0x58
+
+#define I2C_STATE_BUS_ERROR         0x00
+
 /*===========================================================================*/
 /* Driver pre-compile time settings.                                         */
 /*===========================================================================*/
-
 /**
  * @name    Configuration options
  * @{
  */
 /**
  * @brief   I2C0 driver enable switch.
- * @details If set to @p TRUE the support for I2C0 is included.
+ * @details If set to @p TRUE the support for device I2C0 is included.
  * @note    The default is @p FALSE.
  */
 #if !defined(LPC17xx_I2C_USE_I2C0) || defined(__DOXYGEN__)
-#define LPC17xx_I2C_USE_I2C0               FALSE
+#define LPC17xx_I2C_USE_I2C0                FALSE
 #endif
-/** @} */
-
-/**
- * @brief   I2C1 driver enable switch.
- * @details If set to @p TRUE the support for I2C1 is included.
- * @note    The default is @p FALSE.
- */
-#if !defined(LPC17xx_I2C_USE_I2C1) || defined(__DOXYGEN__)
-#define LPC17xx_I2C_USE_I2C1               FALSE
-#endif
-/** @} */
-
-/**
- * @brief   I2C2 driver enable switch.
- * @details If set to @p TRUE the support for I2C2 is included.
- * @note    The default is @p FALSE.
- */
-#if !defined(LPC17xx_I2C_USE_I2C2) || defined(__DOXYGEN__)
-#define LPC17xx_I2C_USE_I2C2               FALSE
-#endif
-/** @} */
 
 /**
  * @brief   I2C0 interrupt priority level setting.
  */
-#if !defined(LPC17xx_I2C0_IRQ_PRIORITY) || defined(__DOXYGEN__)
-#define LPC17xx_I2C0_IRQ_PRIORITY   3
+#if !defined(LPC17xx_I2C_I2C0_IRQ_PRIORITY) || defined(__DOXYGEN__)
+#define LPC17xx_I2C_I2C0_IRQ_PRIORITY       3
+#endif
+
+/**
+ * @brief   I2C1 driver enable switch.
+ * @details If set to @p TRUE the support for device I2C0 is included.
+ * @note    The default is @p FALSE.
+ */
+#if !defined(LPC17xx_I2C_USE_I2C1) || defined(__DOXYGEN__)
+#define LPC17xx_I2C_USE_I2C1                FALSE
 #endif
 
 /**
  * @brief   I2C1 interrupt priority level setting.
  */
-#if !defined(LPC17xx_I2C1_IRQ_PRIORITY) || defined(__DOXYGEN__)
-#define LPC17xx_I2C1_IRQ_PRIORITY   3
+#if !defined(LPC17xx_I2C_I2C1_IRQ_PRIORITY) || defined(__DOXYGEN__)
+#define LPC17xx_I2C_I2C1_IRQ_PRIORITY       3
 #endif
 
 /**
- * @brief   I2C2 interrupt priority level setting.
+ * @brief   I2C2 driver enable switch.
+ * @details If set to @p TRUE the support for device I2C0 is included.
+ * @note    The default is @p FALSE.
  */
-#if !defined(LPC17xx_I2C2_IRQ_PRIORITY) || defined(__DOXYGEN__)
-#define LPC17xx_I2C2_IRQ_PRIORITY   3
+#if !defined(LPC17xx_I2C_USE_I2C2) || defined(__DOXYGEN__)
+#define LPC17xx_I2C_USE_I2C2                FALSE
 #endif
+
+/**
+ * @brief   I2C0 interrupt priority level setting.
+ */
+#if !defined(LPC17xx_I2C_I2C2_IRQ_PRIORITY) || defined(__DOXYGEN__)
+#define LPC17xx_I2C_I2C2_IRQ_PRIORITY       3
+#endif
+/** @} */
 
 /*===========================================================================*/
 /* Derived constants and error checks.                                       */
 /*===========================================================================*/
-/**
- * @brief   Get errors from I2C driver.
- *
- * @param[in] i2cp      pointer to the @p I2CDriver object
- *
- * @notapi
- */
-#define i2c_lld_get_errors(i2cp) ((i2cp)->errors)
 
 /*===========================================================================*/
 /* Driver data structures and types.                                         */
@@ -138,19 +136,9 @@
 typedef uint16_t i2caddr_t;
 
 /**
- * @brief   Offset of each I2C interface.
- */
-typedef enum {
-  i2c0 = 0,
-  i2c1 = 1,
-  i2c2 = 2
-} i2c_offset_t;
-
-/**
- * @brief   Type of I2C Driver condition flags.
+ * @brief   I2C Driver condition flags type.
  */
 typedef uint32_t i2cflags_t;
-
 /**
  * @brief   Supported modes for the I2C bus.
  */
@@ -161,34 +149,12 @@ typedef enum {
 } i2cmode_t;
 
 /**
- * @brief   Driver configuration structure.
- * @note    Implementations may extend this structure to contain more,
- *          architecture dependent, fields.
- */
-
-/**
  * @brief Driver configuration structure.
  */
 typedef struct {
   i2cmode_t       mode;             /**< @brief Specifies the I2C mode.        */
   uint32_t        clock_timing;     /**< @brief Specifies the clock timing     */
 } I2CConfig;
-
-/**
- * @brief Structure for a running I2C interface, internal use only.
- */
-typedef struct {
-  int stat;
-  size_t len;
-  uint8_t bRead;
-  uint8_t bStop;
-  uint8_t needAck;
-  uint8_t devAddr;
-  uint32_t retry_start;
-  uint32_t retry_run;
-  uint8_t *rxbuf;
-  const uint8_t *txbuf;
-} I2CReg;
 
 /**
  * @brief   Type of a structure representing an I2C driver.
@@ -201,10 +167,6 @@ typedef struct I2CDriver I2CDriver;
 struct I2CDriver {
   /**
    * @brief   Driver state.
-   *          0=idle
-   *          1=wait for i2c stop
-   *          2=wait for i2c start ok
-   *          3=normal
    */
   i2cstate_t                state;
   /**
@@ -229,20 +191,34 @@ struct I2CDriver {
   I2C_DRIVER_EXT_FIELDS
 #endif
   /* End of the mandatory fields.*/
-
   /**
-   * @brief   Read or write bytes when succeed.
+   * @brief   Thread waiting for I/O completion.
    */
-  size_t rwBytes;
-
-  /* Internal use only */
-  I2CReg reg;
-  BinarySemaphore done;
-  VirtualTimer vt;
-  /* I2C offset, value can be 0, 1, 2 */
-  i2c_offset_t offset;
-  /* Pointer to the I2C registers block.*/                                \
-  LPC_I2C_TypeDef        *i2c;
+  Thread                    *thread;
+  /**
+   * @brief     Current slave address without R/W bit.
+   */
+  i2caddr_t                 addr;
+  /**
+   * @brief     Pointer to the transmit buffer.
+   */
+  const uint8_t             *txbuf;
+  /**
+    * @brief    Number of bytes to transmit.
+    */
+  size_t                    txbytes;
+  /**
+    * @brief     Pointer to the receive buffer.
+    */
+  uint8_t                   *rxbuf;
+  /**
+      * @brief    Number of bytes to receive.
+      */
+  size_t                    rxbytes;
+  /**
+   * @brief     Pointer to the I2C registers block.
+   */
+  LPC_I2C_TypeDef           *i2c;
 };
 
 /*===========================================================================*/
@@ -262,16 +238,16 @@ struct I2CDriver {
 /* External declarations.                                                    */
 /*===========================================================================*/
 
-#if !defined(__DOXYGEN__)
-#if LPC17xx_I2C_USE_I2C0
+#if LPC17xx_I2C_USE_I2C0 && !defined(__DOXYGEN__)
 extern I2CDriver I2CD1;
 #endif
-#if LPC17xx_I2C_USE_I2C1
+
+#if LPC17xx_I2C_USE_I2C1 && !defined(__DOXYGEN__)
 extern I2CDriver I2CD2;
 #endif
-#if LPC17xx_I2C_USE_I2C2
+
+#if LPC17xx_I2C_USE_I2C2 && !defined(__DOXYGEN__)
 extern I2CDriver I2CD3;
-#endif
 #endif
 
 #ifdef __cplusplus
@@ -287,18 +263,10 @@ extern "C" {
   msg_t i2c_lld_master_receive_timeout(I2CDriver *i2cp, i2caddr_t addr,
                                        uint8_t *rxbuf, size_t rxbytes,
                                        systime_t timeout);
-
-  int Locked_I2C_Request(I2CDriver *i2cp, uint8_t devAddr, uint8_t *buf, int len, int bRead, int bStop, int retry, int needAck);
-#ifdef DEBUG_I2C
-  void I2C_Dump(void);
-#endif
-
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* HAL_USE_I2C */
-
+#endif
 #endif /* _I2C_LLD_H_ */
 
 /** @} */
