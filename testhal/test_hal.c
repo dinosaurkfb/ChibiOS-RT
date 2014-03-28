@@ -284,10 +284,6 @@ static void print_line(void) {
  */
 msg_t TestThread(void *p, ROMCONST testcase_t * ROMCONST * (* patternsp) []) {
   int i, j;
-  LOG_PRINT("patternsp = 0x%08x\n", patternsp);
-  LOG_PRINT("*patternsp = 0x%08x\n", *patternsp);
-  LOG_PRINT("(*patternsp + 1) = 0x%08x\n", (*patternsp + 1));
-  LOG_PRINT("*(*patternsp + 1) + 1 = 0x%08x\n", *(*patternsp + 1) + 1);
   chp = p;
   test_println("");
   test_println("*** ChibiOS/RT test suite");
@@ -326,7 +322,6 @@ msg_t TestThread(void *p, ROMCONST testcase_t * ROMCONST * (* patternsp) []) {
   while ((*patternsp)[i]) {
     j = 0;
     while ((testcasep = (*patternsp)[i][j])) {
-      //LOG_PRINT("&testcasep:0x%08x -- 0x%08x\n", &testcasep, testcasep);
       print_line();
       test_print("--- Test Case ");
       test_printn(i + 1);
