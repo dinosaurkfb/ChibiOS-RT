@@ -78,6 +78,8 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/update.c \
        $(CHIBIOS)/testhal/test_hal.c \
        test_i2c.c \
+       test_gpt.c \
+       test_ext.c \
        main.c
 
 
