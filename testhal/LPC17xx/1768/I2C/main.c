@@ -113,66 +113,75 @@ int main(void) {
   uint8_t addr = 0x01;
   status = mc24lc0x_write_byte(&I2CD1, addr, byte);
   LOG_PRINT("write %d to 0x%02x, return: %d\n", byte++, addr++, status);
+  if (status != RDY_OK) {
+    I2C_Dump();
+  }
   status = mc24lc0x_write_byte(&I2CD1, addr, byte);
   LOG_PRINT("write %d to 0x%02x, return: %d\n", byte++, addr++, status);
+  if (status != RDY_OK) {
+    I2C_Dump();
+  }
   status = mc24lc0x_write_byte(&I2CD1, addr, byte);
   LOG_PRINT("write %d to 0x%02x, return: %d\n", byte++, addr++, status);
+  if (status != RDY_OK) {
+    I2C_Dump();
+  }
   /* I2C_Dump(); */
   LOG_PRINT("*** Test mc24lc0x_write_byte end.\n\n");
 
-  chThdSleepMilliseconds(20);
+  /* chThdSleepMilliseconds(20); */
 
-  LOG_PRINT("*** Test mc24lc0x_random_read\n");
-  uint8_t rbyte = 0;
-  addr = 0x01;
-  status = mc24lc0x_random_read(&I2CD1, addr, &rbyte);
-  LOG_PRINT("random_read from 0x%02x, return: %d\n", addr, status);
-  LOG_PRINT("read rbyte: %d\n", rbyte);
+  /* LOG_PRINT("*** Test mc24lc0x_random_read\n"); */
+  /* uint8_t rbyte = 0; */
+  /* addr = 0x01; */
+  /* status = mc24lc0x_random_read(&I2CD1, addr, &rbyte); */
+  /* LOG_PRINT("random_read from 0x%02x, return: %d\n", addr, status); */
+  /* LOG_PRINT("read rbyte: %d\n", rbyte); */
+  /* /\* I2C_Dump(); *\/ */
+  /* LOG_PRINT("*** Test mc24lc0x_random_read end.\n\n"); */
+
+  /* chThdSleepMilliseconds(20); */
+
+  /* LOG_PRINT("*** Test mc24lc0x_cur_read\n"); */
+  /* status = mc24lc0x_cur_read(&I2CD1, &rbyte); */
+  /* LOG_PRINT("cur_read, return: %d\n", status); */
+  /* LOG_PRINT("read rbyte: %d\n", rbyte); */
+  /* status = mc24lc0x_cur_read(&I2CD1, &rbyte); */
+  /* LOG_PRINT("cur_read, return: %d\n", status); */
+  /* LOG_PRINT("read rbyte: %d\n", rbyte); */
+  /* /\* I2C_Dump(); *\/ */
+  /* LOG_PRINT("*** Test mc24lc0x_cur_read end.\n\n"); */
+
+  /* LOG_PRINT("*** Test WriteEEPROM and ReadEEPROM\n"); */
+  /* for (i = 0; i < TX_DEPTH; i++) { */
+  /*   txbuf[i] = i; */
+  /* } */
+
+  /* int32_t readbytes = 120; */
+  /* w_ret = WriteEEPROM(0, txbuf, readbytes); */
+  /* LOG_PRINT("WriteEEPROM write %d bytes, return: %d\n", readbytes, w_ret); */
   /* I2C_Dump(); */
-  LOG_PRINT("*** Test mc24lc0x_random_read end.\n\n");
+  /* if (-1 == w_ret) { */
+  /*   LOG_PRINT("WriteEEPROM test failed\n"); */
+  /*   goto loop; */
+  /* } */
 
-  chThdSleepMilliseconds(20);
+  /* r_ret = ReadEEPROM(0, rxbuf, readbytes); */
+  /* LOG_PRINT("ReadEEPROM read %d bytes, return: %d\n", readbytes, r_ret); */
+  /* //  I2C_Dump(); */
+  /* if (-1 == r_ret) { */
+  /*   LOG_PRINT("ReadEEPROM test failed\n"); */
+  /*   goto loop; */
+  /* } */
 
-  LOG_PRINT("*** Test mc24lc0x_cur_read\n");
-  status = mc24lc0x_cur_read(&I2CD1, &rbyte);
-  LOG_PRINT("cur_read, return: %d\n", status);
-  LOG_PRINT("read rbyte: %d\n", rbyte);
-  status = mc24lc0x_cur_read(&I2CD1, &rbyte);
-  LOG_PRINT("cur_read, return: %d\n", status);
-  LOG_PRINT("read rbyte: %d\n", rbyte);
-  /* I2C_Dump(); */
-  LOG_PRINT("*** Test mc24lc0x_cur_read end.\n\n");
-
-  LOG_PRINT("*** Test WriteEEPROM and ReadEEPROM\n");
-  for (i = 0; i < TX_DEPTH; i++) {
-    txbuf[i] = i;
-  }
-
-  int32_t readbytes = 120;
-  w_ret = WriteEEPROM(0, txbuf, readbytes);
-  LOG_PRINT("WriteEEPROM write %d bytes, return: %d\n", readbytes, w_ret);
-  I2C_Dump();
-  if (-1 == w_ret) {
-    LOG_PRINT("WriteEEPROM test failed\n");
-    goto loop;
-  }
-
-  r_ret = ReadEEPROM(0, rxbuf, readbytes);
-  LOG_PRINT("ReadEEPROM read %d bytes, return: %d\n", readbytes, r_ret);
-  //  I2C_Dump();
-  if (-1 == r_ret) {
-    LOG_PRINT("ReadEEPROM test failed\n");
-    goto loop;
-  }
-
-  if (0 == w_ret && 0 == r_ret) {
-    if (!memcmp(rxbuf, txbuf, readbytes)) {
-      LOG_PRINT("WriteEEPROM and ReadEEPROM test ok\n\n");
-    } else {
-      LOG_PRINT("WriteEEPROM and ReadEEPROM test failed\n");
-      print_buf(rxbuf, readbytes);
-    }
-  }
+  /* if (0 == w_ret && 0 == r_ret) { */
+  /*   if (!memcmp(rxbuf, txbuf, readbytes)) { */
+  /*     LOG_PRINT("WriteEEPROM and ReadEEPROM test ok\n\n"); */
+  /*   } else { */
+  /*     LOG_PRINT("WriteEEPROM and ReadEEPROM test failed\n"); */
+  /*     print_buf(rxbuf, readbytes); */
+  /*   } */
+  /* } */
 
  loop:
   while (TRUE) {
