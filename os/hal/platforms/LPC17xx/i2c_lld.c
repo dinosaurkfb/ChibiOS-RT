@@ -159,7 +159,7 @@ I2CDriver I2CD3;
 static void i2c_lld_safety_timeout(void *p) {
   I2CDriver *i2cp = (I2CDriver *)p;
 
-  AddLog(EVT_TIMEOUT1, 0);
+  AddLog(EVT_TIMEOUT, 0);
   chSysLockFromIsr();
   if (i2cp->thread) {
     Thread *tp = i2cp->thread;
