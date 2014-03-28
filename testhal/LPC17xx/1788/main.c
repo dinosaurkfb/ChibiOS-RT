@@ -22,6 +22,7 @@
 #include "hal.h"
 #include "test_hal.h"
 #include "devices_lib.h"
+#include "update.h"
 
 /*===========================================================================*/
 /* Configurable settings.                                                    */
@@ -66,19 +67,9 @@ int main(void) {
   halInit();
   chSysInit();
 
+  updateThreadStart();
   EEPROMInit(&I2CD2, &eeprom_i2ccfg);
 
-  LOG_PRINT("patterns :0x%08x\n", patterns);
-  LOG_PRINT("&patterns[1] :0x%08x\n", &patterns[1]);
-  LOG_PRINT("patterns[1] :0x%08x\n", patterns[1]);
-  LOG_PRINT("pattern_i2c :0x%08x\n", pattern_i2c);
-  LOG_PRINT("&pattern_i2c[1] :0x%08x -- 0x%08x\n", &pattern_i2c[1], pattern_i2c[1]);
-  LOG_PRINT("&pattern_i2c[2] :0x%08x -- 0x%08x\n", &pattern_i2c[2], pattern_i2c[2]);
-  LOG_PRINT("&pattern_i2c[3] :0x%08x -- 0x%08x\n", &pattern_i2c[3], pattern_i2c[3]);
-  LOG_PRINT("&patterns[0][1] :0x%08x\n", &patterns[0][1]);
-  LOG_PRINT("patterns[0][1] :0x%08x\n", patterns[0][1]);
-  LOG_PRINT("patterns[0][0] :0x%08x\n", patterns[0][0]);
-  LOG_PRINT("------------------------------\n");
   result = TestThread(&SD1, &patterns);
   LOG_PRINT("TestThread return %d\n", result);
   while(TRUE) {

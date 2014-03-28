@@ -186,11 +186,11 @@ ROMCONST testcase_t read_eeprom = {
  * @brief   Test sequence for eeprom.
  */
 ROMCONST testcase_t * ROMCONST pattern_i2c[] = {
-  /* &write_byte, */
-  /* &random_read, */
-  /* &write_read_cmp, */
-  /* &cur_read, */
-  /* &write_read_cmp, */
+  &write_byte,
+  &random_read,
+  &write_read_cmp,
+  &cur_read,
+  &write_read_cmp,
   &write_eeprom,
   &read_eeprom,
   &write_read_cmp,
