@@ -36,13 +36,16 @@ static const I2CConfig eeprom_i2ccfg = {
 extern ROMCONST testcase_t * ROMCONST pattern_i2c[];
 extern ROMCONST testcase_t * ROMCONST pattern_gpt[];
 extern ROMCONST testcase_t * ROMCONST pattern_ext[];
+extern ROMCONST testcase_t * ROMCONST pattern_serial[];
+
 /*
  * Array of all the test patterns.
  */
 static ROMCONST testcase_t * ROMCONST *patterns[] = {
-  /* pattern_i2c, */
-  /* pattern_gpt, */
+  pattern_i2c,
+  pattern_gpt,
   pattern_ext,
+  pattern_serial,
   NULL
 };
 
@@ -60,7 +63,6 @@ static ROMCONST testcase_t * ROMCONST *patterns[] = {
  */
 int main(void) {
   msg_t result;
-
   /*
    * System initializations.
    * - HAL initialization, this also initializes the configured device drivers
