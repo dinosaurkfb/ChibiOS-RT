@@ -263,6 +263,10 @@ extern "C" {
   msg_t i2c_lld_master_receive_timeout(I2CDriver *i2cp, i2caddr_t addr,
                                        uint8_t *rxbuf, size_t rxbytes,
                                        systime_t timeout);
+#ifdef DEBUG_I2C
+  void I2C_Dump(void);
+#endif
+
 #ifdef __cplusplus
 }
 #endif
