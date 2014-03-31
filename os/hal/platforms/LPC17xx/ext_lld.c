@@ -27,6 +27,10 @@
 
 #if HAL_USE_EXT || defined(__DOXYGEN__)
 
+#ifdef LPC177x_8x
+#include "pinsel_lld.h"
+#endif /* #ifdef LPC177x_8x */
+
 #include "ext_lld_isr.h"
 
 /*===========================================================================*/
@@ -117,12 +121,17 @@ void ext_lld_stop(EXTDriver *extp) {
 void ext_lld_channel_enable(EXTDriver *extp, expchannel_t channel) {
 
   /* Select EINTx function for the pin */
+#ifdef LPC177x_8x
+  uint8_t offset = 10 + channel;
+  PINSEL_ConfigPin(2, offset, 0b001);
+#else /* #ifdef LPC177x_8x */
   uint8_t offset = 20 + (2 * channel);
   LPC_PINCON->PINSEL4 = (LPC_PINCON->PINSEL4 &~ (0xFF << offset)) | (1 << offset);
+#endif /* #ifdef LPC177x_8x */
 
   /* Set edge sensitive */
   LPC_SC->EXTMODE = 1 << channel;
-  
+
   if (extp->config->channels[channel].mode & EXT_CH_MODE_RISING_EDGE)
     LPC_SC->EXTPOLAR |=  (1 << channel);
   else
