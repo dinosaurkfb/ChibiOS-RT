@@ -377,7 +377,7 @@ void sd_lld_start(SerialDriver *sdp, const SerialConfig *config) {
       PINSEL_ConfigPin(0, 3, 0b001);
 #else /* #ifdef LPC177x_8x */
       LPC_PINCON->PINSEL0 &=~(0x0FL << 4);
-      LPC_PINCON->PINSEL0 |= (0x01 << 4)|(0x01 << 6); 
+      LPC_PINCON->PINSEL0 |= (0x01 << 4)|(0x01 << 6);
 #endif /* #ifdef LPC177x_8x */
 
 #endif /* #if !defined(P0_2_FUNC) || !defined(P0_3_FUNC) */
