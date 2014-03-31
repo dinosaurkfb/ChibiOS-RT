@@ -190,12 +190,11 @@ void  Compare(uint32_t dst, uint32_t src, uint32_t no)
   paramin[1] = dst;
   paramin[2] = src;
   paramin[3] = no;
-  iap_entry(paramin, paramout);        	
+  iap_entry(paramin, paramout);
 }
 
-
 /* watchdog timeout value in ms */
-#define WDT_TIMEOUT 100
+#define WDT_TIMEOUT 1
 
 void enter_isp_with_wdt(void)
 {
@@ -217,7 +216,7 @@ void enter_isp_with_wdt(void)
   while(1) {
     if (i++ == 0x00ffffff) {
       if (j++ == 10) {
-	j = 0;
+        j = 0;
       }
       i = 0;
     }
