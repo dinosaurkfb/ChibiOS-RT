@@ -313,8 +313,15 @@ void ssp_spi_lld_start(SSPSPIDriver *spip) {
 	LPC_GPIO5->FIODIR |= 1 << 4;
 #else
 	/* Please Configure PIN (CS SCK MISO MOSI) */
-	// ----------
-	// ----------
+//	LPC_GPIO0->FIODIR |=  (1<<6);                   /* P0.6 CS is output */
+
+	/* P0.7 SCK, P0.8 MISO, P0.9 MOSI are SSP pins. */
+	LPC_PINCON->PINSEL0 &=~((3<<14) | (3<<16) | (3<<18));
+	LPC_PINCON->PINSEL0 |= (2<<14)|(2<<16)|(2<<18);    
+
+	LPC_SC->PCLKSEL0 &=~(3<<20);                   
+	LPC_SC->PCLKSEL0 |=(1<<20);                   
+
 #endif
     if (&SPID2 == spip) {
 	  LPC_SC->PCONP |= PCSSP1;                      /* Enable power to SSPI1 block */ 
