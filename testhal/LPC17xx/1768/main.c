@@ -38,6 +38,8 @@ extern ROMCONST testcase_t * ROMCONST pattern_gpt[];
 extern ROMCONST testcase_t * ROMCONST pattern_ext[];
 extern ROMCONST testcase_t * ROMCONST pattern_serial[];
 extern ROMCONST testcase_t * ROMCONST pattern_spi[];
+extern ROMCONST testcase_t * ROMCONST pattern_can[];
+extern ROMCONST testcase_t * ROMCONST pattern_ican[];
 
 /*
  * Array of all the test patterns.
@@ -48,6 +50,8 @@ static ROMCONST testcase_t * ROMCONST *patterns[] = {
   pattern_ext,
   pattern_serial,
   pattern_spi,
+  pattern_can,
+  pattern_ican,
   NULL
 };
 
