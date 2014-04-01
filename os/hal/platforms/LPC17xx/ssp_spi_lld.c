@@ -245,7 +245,7 @@ void ssp_spi_lld_init(void) {
 #ifdef LPC177x_8x
 #if LPC17xx_USE_SSP_SPI2
   sspspiObjectInit(&SPID3);
-  SPID3.ssp = LPC_SSP1;
+  SPID3.ssp = LPC_SSP2;
 #endif /* LPC17xx_USE_SSP_SPI2 */
 #endif 
 }
@@ -321,7 +321,6 @@ void ssp_spi_lld_start(SSPSPIDriver *spip) {
 
 	LPC_SC->PCLKSEL0 &=~(3<<20);                   
 	LPC_SC->PCLKSEL0 |=(1<<20);                   
-
 #endif
     if (&SPID2 == spip) {
 	  LPC_SC->PCONP |= PCSSP1;                      /* Enable power to SSPI1 block */ 
