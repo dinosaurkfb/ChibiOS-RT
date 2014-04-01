@@ -69,3 +69,11 @@
 #define LPC17xx_RTC_IRQ_PRIORITY            0
 
 #define LPC17xx_I2C_USE_I2C0                TRUE
+
+
+/*
+ * SSP SPI driver system settings.
+ */
+#define LPC17xx_USE_SSP_SPI0 				TRUE
+#define LPC17xx_SSP_SPI0_IRQ_PRIORITY		5
+

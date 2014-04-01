@@ -216,7 +216,7 @@
 /**
  * @brief   Type of a structure representing an SPI driver.
  */
-typedef struct SSPSPIDriver SSPSPIDriver;
+typedef struct SSPSPI_Driver SSPSPIDriver;
 
 /**
  * @brief   SPI notification callback type.
@@ -256,7 +256,7 @@ typedef struct {
 /**
  * @brief   Structure representing a SPI driver.
  */
-struct SSPSPIDriver {
+struct SSPSPI_Driver {
   /**
    * @brief Driver state.
    */

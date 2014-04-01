@@ -139,7 +139,7 @@
  * @brief   Enables the SPI subsystem.
  */
 #if !defined(HAL_USE_SPI) || defined(__DOXYGEN__)
-#define HAL_USE_SPI                 TRUE
+#define HAL_USE_SPI                 FALSE
 #endif
 
 /**
@@ -296,7 +296,7 @@
  * @note    Disabling this option saves both code and data space.
  */
 #if !defined(SPI_USE_WAIT) || defined(__DOXYGEN__)
-#define SPI_USE_WAIT                TRUE
+#define SPI_USE_WAIT                FALSE
 #endif
 
 /**
@@ -305,6 +305,15 @@
  */
 #if !defined(SPI_USE_MUTUAL_EXCLUSION) || defined(__DOXYGEN__)
 #define SPI_USE_MUTUAL_EXCLUSION    TRUE
+#endif
+
+
+/**
+ * @brief   Enables synchronous APIs.
+ * @note    Disabling this option saves both code and data space.
+ */
+#if !defined(HAL_USE_SSP_SPI) || defined(__DOXYGEN__)
+#define HAL_USE_SSP_SPI 				TRUE
 #endif
 
 #endif /* _HALCONF_H_ */

@@ -13,9 +13,9 @@
 ** Descriptions:		The original version
 **
 **------------------------------------------------------------------------------------------------------
-** Modified by:			
-** Modified date:	
-** Version:
+** Modified by:		   SangWencheng
+** Modified date:	   2014-4-01
+** Version:			   2.0
 ** Descriptions:		
 ********************************************************************************************************/
 
@@ -23,44 +23,19 @@
 #include "hal.h"
 #include "SST25VF016B.h"
 
+static SSPSPIDriver *m_spip = NULL;
 
-#define SPI_FLASH_CS_LOW()    	 sspspiSelect(&SPID1)
-#define SPI_FLASH_CS_HIGH()  	 sspspiUnselect(&SPID1)
-
-
-
-static SSPSPIConfig spicfg = {
-  NULL,
-  LPC_GPIO0,
-  16,
-  7,
-  1000000  //位速率
-};
-
-/*******************************************************************************
-* Function Name  : LPC17xx_SPI_SetSpeed
-* Description    : Set a SSP0 clock speed to desired value
-* Input          : - speed: SPI Speed
-* Output         : None
-* Return         : None
-* Attention		 : None
-*******************************************************************************/
-void LPC17xx_SPI_SetSpeed (uint8_t speed)
+void SPI_FLASH_CS_LOW(void)
 {
-	speed &= 0xFE;
-	if ( speed < 2  ) {
-		speed = 2 ;
-	}
-	LPC_SSP0->CPSR = speed;
+	sspspiSelect(m_spip);
 }
-uint32_t LPC17xx_SPI_GetSpeed (uint8_t speed)
+
+void SPI_FLASH_CS_HIGH(void)  
 {
-	speed &= 0xFE;
-	if ( speed < 2  ) {
-		speed = 2 ;
-	}
-	return speed;
+	sspspiUnselect(m_spip);
 }
+ 
+
 
 /*******************************************************************************
 * Function Name  : SPI_FLASH_Init
@@ -70,9 +45,10 @@ uint32_t LPC17xx_SPI_GetSpeed (uint8_t speed)
 * Return         : None
 * Attention		 : None
 *******************************************************************************/
-void SPI_FLASH_Init(void)
+void SPI_FLASH_Init(SSPSPIDriver *spip, const SSPSPIConfig *config)
 {
-	sspspiStart(&SPID1, &spicfg);
+	m_spip = spip;
+	sspspiStart(m_spip, config);
 }
 
 
@@ -86,13 +62,22 @@ void SPI_FLASH_Init(void)
 *******************************************************************************/
 void Flash_WriteByte(uint8_t data)		
 {
-	sspspiSend(&SPID1,1, &data);    /* Polled method.       */
+	if(m_spip == NULL) { 
+		LOG_PRINT("SSPSPIDriver = NULL.\n");
+		return;
+	}
+	sspspiSend(m_spip,1, &data);    /* Polled method.       */
 }
 
 uint8_t Flash_ReadByte(void)		
 {
 	uint8_t r_buf;
-	sspspiReceive(&SPID1, 1, &r_buf); 
+	if(m_spip == NULL) { 
+		LOG_PRINT("SSPSPIDriver = NULL.\n");
+		return -1;
+	}
+
+	sspspiReceive(m_spip, 1, &r_buf); 
 	return r_buf;
 }
 
@@ -111,7 +96,6 @@ uint8_t Flash_ReadByte(void)
 *******************************************************************************/
 uint8_t SSTF016B_RD(uint32_t Dst, uint8_t* RcvBufPt ,uint32_t NByte)
 {
-	uint32_t i = 0;
 	if ((Dst+NByte > MAX_ADDR)||(NByte == 0))	return (ERROR);	 /*	检查入口参数 */
 	
     SPI_FLASH_CS_LOW();
@@ -120,7 +104,7 @@ uint8_t SSTF016B_RD(uint32_t Dst, uint8_t* RcvBufPt ,uint32_t NByte)
 	Flash_WriteByte(((Dst & 0xFFFF) >> 8));
 	Flash_WriteByte(Dst & 0xFF);
 	Flash_WriteByte(0xFF);						/* 发送一个哑字节以读取数据	*/
-	sspspiReceive(&SPID1, NByte, RcvBufPt); 
+	sspspiReceive(m_spip, NByte, RcvBufPt); 
     SPI_FLASH_CS_HIGH();
 	return (ENABLE);
 }
@@ -142,7 +126,7 @@ uint8_t SSTF016B_RdID(idtype IDType,uint32_t* RcvbufPt)
 		SPI_FLASH_CS_LOW();	
 				
 		Flash_WriteByte(0x9F);		 		         /* 发送读JEDEC ID命令(9Fh)	*/
-		sspspiReceive(&SPID1, 3, RcvbufPt); 
+		sspspiReceive(m_spip, 3, RcvbufPt); 
         SPI_FLASH_CS_HIGH();
 
 		return (ENABLE);

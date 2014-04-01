@@ -78,6 +78,7 @@ static void can_lld_set_filters(uint32_t can2sb,
 	}
 }
 
+#if LPC17XX_CAN_USE_CAN1 || LPC17XX_CAN_USE_CAN2
 /**
  * @brief   Common TX ISR handler.
  *
@@ -169,6 +170,7 @@ static void can_lld_err_handler(CANDriver *canp, uint32_t err_code) {
 }
 
 
+
 #if CAN_USE_SLEEP_MODE
 /**
  * @brief   Wake up ISR handler.
@@ -189,6 +191,7 @@ static void can_lld_wakeup_handler(CANDriver *canp) {
 }
 #endif /* CAN_USE_SLEEP_MODE */
 
+#endif 
 /**
  * @brief   Common RX TX ERR ISR handler.
  *

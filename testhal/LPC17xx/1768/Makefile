@@ -81,6 +81,7 @@ CSRC = $(PORTSRC) \
        test_gpt.c \
        test_ext.c \
        test_serial.c \
+       test_spi.c \
        main.c
 
 

@@ -64,27 +64,26 @@ int main(void)
 	}
 
 	df_write_open(0);
-	df_write( WriteBuffer, sizeof(WriteBuffer) );
+	df_write(WriteBuffer, sizeof(WriteBuffer));
 	df_write_close(); 
 
-	LOG_PRINT("HY-LPC1788-SDK SPI Flash Write Date:.\n");
+	LOG_PRINT("LPC1768-SDK SPI Flash Write Date:.\n");
 	memdump(WriteBuffer, sizeof(WriteBuffer));
 
 
 	df_read_open(0);
 	df_read(ReadBuffer, sizeof(ReadBuffer));
-
-	LOG_PRINT("HY-LPC1788-SDK SPI Flash Read Date:.\n");
+	LOG_PRINT("LPC1768-SDK SPI Flash Read Date:.\n");
 	memdump(ReadBuffer, sizeof(ReadBuffer));
 
 	/* Matching data */
 	if( memcmp(WriteBuffer, ReadBuffer, sizeof(WriteBuffer) ) == 0 )  
 	{
-		LOG_PRINT("HY-LPC1788-SDK SPI Flash SST25VF016B OK.\n");
+		LOG_PRINT("LPC1768-SDK SPI Flash SST25VF016B OK.\n");
 	}
 	else
 	{
-		LOG_PRINT("HY-LPC1788-SDK SPI Flash SST25VF016B False.\n");
+		LOG_PRINT("LPC1768-SDK SPI Flash SST25VF016B False.\n");
 		for(i=0; i<256; i++ ) {
 			if(ReadBuffer[i] != WriteBuffer[i]) {
 				LOG_PRINT("%03d %03d %03d.\n", i, ReadBuffer[i], WriteBuffer[i]);

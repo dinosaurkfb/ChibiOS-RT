@@ -3,5 +3,4 @@ build/
 *.exe
 *.hex
 *~
-*.bat
-*.sw*
+.sw*
