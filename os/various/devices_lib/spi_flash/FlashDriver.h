@@ -26,6 +26,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "LPC17xx.h"
+#if HAL_USE_SSP_SPI || defined(__DOXYGEN__)
 #include "SST25VF016B.h"
 
 /* Private function prototypes -----------------------------------------------*/
@@ -38,6 +39,7 @@ void df_write_seek(uint32_t addr);
 void df_read_close(void);
 void df_write_close(void);
 
+#endif 
 #endif 
 /*********************************************************************************************************
       END FILE

@@ -23,6 +23,7 @@
 #include "SST25VF016B.h"
 #include "FlashDriver.h"
 
+#if HAL_USE_SSP_SPI || defined(__DOXYGEN__)
 /* Private variables ---------------------------------------------------------*/
 static uint32_t CurReadAddr;	/* 当前读的地址 */
 static uint32_t CurWriteAddr;	/* 当前写页地址	*/
@@ -142,6 +143,7 @@ void df_read_close(void)
 void df_write_close(void)
 {
 }
+#endif
 
 /*********************************************************************************************************
       END FILE

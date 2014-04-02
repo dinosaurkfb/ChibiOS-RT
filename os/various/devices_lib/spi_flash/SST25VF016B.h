@@ -26,6 +26,8 @@
 #include "LPC17xx.h"
 #include "hal.h"
 
+
+#if HAL_USE_SSP_SPI || defined(__DOXYGEN__)
 /* Private typedef -----------------------------------------------------------*/
 /* 定义操作SST25VF016B所需的数据 */
 typedef enum ERTYPE{Sec1,Sec8,Sec16,Chip} ErType;  
@@ -58,6 +60,7 @@ uint8_t SSTF016B_WR(uint32_t Dst, uint8_t* SndbufPt,uint32_t NByte);
 uint8_t SSTF016B_Erase(uint32_t sec1, uint32_t sec2);
 void SPI_FLASH_Test(void);
 
+#endif
 #endif
 /*********************************************************************************************************
       END FILE

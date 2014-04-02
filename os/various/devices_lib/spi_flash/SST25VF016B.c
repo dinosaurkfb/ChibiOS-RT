@@ -21,6 +21,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "hal.h"
+#if HAL_USE_SSP_SPI || defined(__DOXYGEN__)
 #include "SST25VF016B.h"
 
 static SSPSPIDriver *m_spip = NULL;
@@ -408,6 +409,7 @@ void SPI_FLASH_Test(void)
 		   }
     }
 }
+#endif
 
 /*********************************************************************************************************
       END FILE
