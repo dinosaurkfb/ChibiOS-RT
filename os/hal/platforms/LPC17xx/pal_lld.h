@@ -181,7 +181,7 @@ typedef LPC_GPIO_TypeDef *ioportid_t;
  *
  * @notapi
  */
-#define pal_lld_readlatch(port) ((port)->FIOPIN)
+#define pal_lld_readlatch(port) ((port)->FIOSET)
 
 /**
  * @brief   Writes a bits mask on a I/O port.
@@ -192,6 +192,21 @@ typedef LPC_GPIO_TypeDef *ioportid_t;
  * @notapi
  */
 #define pal_lld_writeport(port, bits) ((port)->FIOPIN = (bits))
+
+/**
+ * @brief   Toggles a bits mask on a I/O port.
+ *
+ * @param[in] port      port identifier
+ * @param[in] bits      bits to be written on the specified port
+ * @note    expression "(port)->FIOSET" obtains latched bits.
+ * @note    FIOMASK is used to ensure setting FIOPIN doesn't affect other bits.
+ *
+ * @notapi
+ */
+#define pal_lld_toggleport(port, bits)                                  \
+  ((port)->FIOMASK &= ~bits,                                            \
+   (port)->FIOPIN = ((port)->FIOSET ) ^ (bits), \
+   (port)->FIOMASK = 0)
 
 /**
  * @brief   Sets a bits mask on a I/O port.
@@ -314,6 +329,22 @@ typedef LPC_GPIO_TypeDef *ioportid_t;
  */
 #define pal_lld_clearpad(port, pad)                                         \
   ((port)->FIOCLR = 1UL << (pad))
+
+/**
+ * @brief   Toggles a pad logical state to @p PAL_HIGH.
+ * @note    The @ref PAL provides a default software implementation of this
+ *          functionality, implement this function if can optimize it by using
+ *          special hardware functionalities or special coding.
+ *
+ * @param[in] port      port identifier
+ * @param[in] pad       pad number within the port
+ *
+ * @notapi
+ */
+#define pal_lld_togglepad(port, pad)                                    \
+  (((port)->FIOSET & (1UL << (pad))) ? pal_lld_clearpad(port, pad) :    \
+   pal_lld_setpad(port, pad))
+
 
 #if !defined(__DOXYGEN__)
 extern const PALConfig pal_default_config;
