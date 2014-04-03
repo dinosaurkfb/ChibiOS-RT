@@ -24,8 +24,8 @@
 #include "iCAN.h"
 
 
-#define MAX_WRITE_TIMES  		32
-#define ICAN_DATA_STAET 		128
+#define MAX_WRITE_TIMES  		16
+#define ICAN_DATA_STAET 		256
 #define MAX_ICAN_DATA_LEN 		(ICAN_DATA_STAET + MAX_WRITE_TIMES)
 #define ICAN_TEST_LEN 			448
 

@@ -97,7 +97,7 @@ static void can1_to_can2_exe(void) {
   LOG_PRINT("\n\tConnect CAN1 and CAN2 together to pass the test or not"
             " to fail the test.\n\n");
   chThdSleepSeconds(1);
-  for (j = 1; j < MAX_WRITE_TIMES; j++) {
+  for (j = 1; j <= MAX_WRITE_TIMES; j++) {
     /* Tell sender to send 'j' bytes to me. */
     chMsgSend(s_senderp, (msg_t)j);
     test_assert(j,
@@ -176,7 +176,7 @@ static void can2_to_can1_exe(void) {
   LOG_PRINT("\n\tConnect CAN1 and CAN2 together to pass the test or not"
             " to fail the test.\n\n");
   chThdSleepSeconds(1);
-  for (j = 1; j < MAX_WRITE_TIMES; j++) {
+  for (j = 1; j <= MAX_WRITE_TIMES; j++) {
     /* Tell sender to send 'j' bytes to me. */
     chMsgSend(s_senderp, (msg_t)j);
     test_assert(j,
@@ -197,10 +197,32 @@ ROMCONST testcase_t can2_to_can1 = {
   can2_to_can1_exe
 };
 
+static void can_timeout_setup(void) {
+ 	canStart(&CAND1, &cancfg);
+}
+
+static volatile systime_t s_start_st = 0;
+static void can_timeout_exe(void) { 
+    s_start_st = chTimeNow();
+	msg_t ret = canReceive(&CAND1, CAN_ANY_MAILBOX, &s_rxmsg, MS2ST(200));
+    test_assert(1,
+			    ret == RDY_TIMEOUT,
+                "\tcanReceive do not timeout.");
+    test_assert_time_window(1, s_start_st + MS2ST(200) - 1, s_start_st + MS2ST(200) + 1);
+}
+
+ROMCONST testcase_t can_timeout_test = {
+  "can_timeout_test",
+  can_timeout_setup,
+  NULL,
+  can_timeout_exe
+};
+
 /**
  * @brief   Test sequence for eeprom.
  */
 ROMCONST testcase_t * ROMCONST pattern_can[] = {
+  &can_timeout_test,
   &can1_to_can2,
   &can2_to_can1,
   NULL

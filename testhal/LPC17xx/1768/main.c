@@ -64,6 +64,16 @@ static ROMCONST testcase_t * ROMCONST *patterns[] = {
 /* Test related code.                                                        */
 /*===========================================================================*/
 
+/* Print can frame */
+void printMsg(CANRxFrame *msg) {
+	int i;
+	LOG_PRINT("\n\nID:0x%x", msg->EID);
+	LOG_PRINT(" BUF:");
+	for(i=0; i<msg->DLC; i++){
+		LOG_PRINT("%02x ",msg->data8[i]);
+	}
+}
+
 /*
  * Application entry point.
  */
@@ -79,12 +89,27 @@ int main(void) {
   halInit();
   chSysInit();
 
+  CANRxFrame rxmsg;
+  CANTxFrame txmsg;
+
   updateThreadStart();
   EEPROMInit(&I2CD1, &eeprom_i2ccfg);
 
   result = TestThread(&SD1, &patterns);
   LOG_PRINT("TestThread return %d\n", result);
   while(TRUE) {
+	  if(RDY_OK == canReceive(&CAND1, CAN_ANY_MAILBOX, &rxmsg, 100)) {
+		  printMsg(&rxmsg); 
+		  txmsg.IDE = rxmsg.IDE; 
+		  txmsg.RTR = rxmsg.RTR; 
+		  txmsg.EID = rxmsg.EID; 
+		  txmsg.DLC = rxmsg.DLC;
+		  memcpy(txmsg.data8, rxmsg.data8, rxmsg.DLC);
+		  canTransmit(&CAND1, CAN_ANY_MAILBOX, (const CANTxFrame *)&txmsg, MS2ST(20));
+	  }
     chThdSleepMilliseconds(100);
   }
 }
+
+
+
