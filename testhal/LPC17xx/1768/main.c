@@ -63,6 +63,13 @@ static ROMCONST testcase_t * ROMCONST *patterns[] = {
 /*===========================================================================*/
 /* Test related code.                                                        */
 /*===========================================================================*/
+/** @brief Driver configuration.*/
+static const SerialConfig uart2_config = {
+  38400,
+  LCR_WL8 | LCR_STOP1 | LCR_NOPARITY,
+  FCR_TRIGGER0
+};
+
 
 /* Print can frame */
 void printMsg(CANRxFrame *msg) {
@@ -73,6 +80,8 @@ void printMsg(CANRxFrame *msg) {
 		LOG_PRINT("%02x ",msg->data8[i]);
 	}
 }
+
+static uint8_t r_buf[256];
 
 /*
  * Application entry point.
@@ -97,17 +106,23 @@ int main(void) {
 
   result = TestThread(&SD1, &patterns);
   LOG_PRINT("TestThread return %d\n", result);
+  size_t ret;
+  sdStart(&SD3, &uart2_config);
   while(TRUE) {
-	  if(RDY_OK == canReceive(&CAND1, CAN_ANY_MAILBOX, &rxmsg, 100)) {
-		  printMsg(&rxmsg); 
-		  txmsg.IDE = rxmsg.IDE; 
-		  txmsg.RTR = rxmsg.RTR; 
-		  txmsg.EID = rxmsg.EID; 
-		  txmsg.DLC = rxmsg.DLC;
-		  memcpy(txmsg.data8, rxmsg.data8, rxmsg.DLC);
-		  canTransmit(&CAND1, CAN_ANY_MAILBOX, (const CANTxFrame *)&txmsg, MS2ST(20));
-	  }
-    chThdSleepMilliseconds(100);
+    if(RDY_OK == canReceive(&CAND1, CAN_ANY_MAILBOX, &rxmsg, MS2ST(10))) {
+      printMsg(&rxmsg);
+      txmsg.IDE = rxmsg.IDE;
+      txmsg.RTR = rxmsg.RTR;
+      txmsg.EID = rxmsg.EID;
+      txmsg.DLC = rxmsg.DLC;
+      memcpy(txmsg.data8, rxmsg.data8, rxmsg.DLC);
+      canTransmit(&CAND1, CAN_ANY_MAILBOX, (const CANTxFrame *)&txmsg, MS2ST(20));
+    }
+    ret = sdReadTimeout(&SD3, r_buf, sizeof(r_buf), MS2ST(10));
+    if (ret > 0) {
+      memdump(r_buf, ret);
+      sdWriteTimeout(&SD3, r_buf, sizeof(r_buf), MS2ST(10));
+    }
   }
 }
 
