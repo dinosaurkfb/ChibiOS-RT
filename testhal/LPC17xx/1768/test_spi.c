@@ -45,7 +45,7 @@ static SSPSPIConfig spicfg = {
 /* read flash id test */
 static void read_flash_id_setup(void) {
 	SPI_FLASH_Init(&SPID1, &spicfg);
-	LOG_PRINT(" spi start.\n");
+	LOG_PRINT("\tspi start.\n");
 }
 
 static void read_flash_id_exe(void) {
@@ -54,9 +54,9 @@ static void read_flash_id_exe(void) {
 	                                                                     
     ChipID &= ~0xff000000;						                        
 	if (ChipID != 0x4125BF) {										
-		LOG_PRINT(" Err: SSTF016B ID =0x%x", ChipID);
+		LOG_PRINT("\tErr: SSTF016B ID =0x%x", ChipID);
     }else{
-		LOG_PRINT("Read id OK: SSTF016B ID =0x%x.\n", ChipID);
+		LOG_PRINT("\tRead id OK: SSTF016B ID =0x%x.\n", ChipID);
 	}
 }
 
@@ -123,12 +123,12 @@ static void write_read_cmp_exe(void) {
 	int i;
 	/* Matching data */
 	if( memcmp(w_buf, r_buf, SPI_TEST_SIZE) == 0 )  {
-		LOG_PRINT("LPC1768 SPI Flash SST25VF016B Test OK.\n");
+		LOG_PRINT("\tLPC1768 SPI Flash SST25VF016B Test OK.\n");
 	} else {
-		LOG_PRINT("ERR: LPC1768 SPI Flash SST25VF016B False.\n");
+		LOG_PRINT("\tERR: LPC1768 SPI Flash SST25VF016B False.\n");
 		for(i=0; i<SPI_TEST_SIZE; i++ ) {
 			if(r_buf[i] != w_buf[i]) {
-				LOG_PRINT("%03d %03d %03d.\n", i, r_buf[i], w_buf[i]);
+				LOG_PRINT("\t%03d %03d %03d.\n", i, r_buf[i], w_buf[i]);
 			}
 		}
 	} 

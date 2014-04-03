@@ -22,145 +22,187 @@
 
 #include "string.h"
 
+#include "update.h"
+/*===========================================================================*/
+/* Configurable settings.                                                    */
+/*===========================================================================*/
+#define MAX_WRITE_TIMES 8
 
-#define CAN_TEST_LEN  		128
+#define BUF_SIZE  256
 
+static Thread *s_senderp;
 
-
+/** @brief Driver configuration.*/
 static const CANConfig cancfg = {
   0x500f9 //40kb
 };
 
 
+CANTxFrame txmsg;
+CANRxFrame s_rxmsg;
 
-static WORKING_AREA(can1_wa, 512);
-static WORKING_AREA(can2_wa, 512);
-
-/* Print can frame */
-void printMsg(CANRxFrame *msg) {
-	int i;
-	LOG_PRINT("\n\nID:0x%x", msg->EID);
-	LOG_PRINT(" BUF:");
-	for(i=0; i<msg->DLC; i++){
-		LOG_PRINT("%02x ",msg->data8[i]);
-	}
-}
-
-/*
- * If can1 read data, Then send the data to can2
- */
-static msg_t can1_read(void * p) {
-	CANRxFrame rxmsg;
-	msg_t ret;
-
-	(void)p;
-	chRegSetThreadName("receiver1");
-	while(!chThdShouldTerminate()) {
-	  while(1) {
-		ret = canReceive(&CAND1, CAN_ANY_MAILBOX, &rxmsg, 100);
-		  /* Process message.*/
-		if(ret == RDY_OK) {
-			printMsg(&rxmsg);
-			chThdSleepMilliseconds(500);
-			rxmsg.EID = 0x01234567;
-			canTransmit(&CAND1, CAN_ANY_MAILBOX, (const CANTxFrame *)&rxmsg, MS2ST(100));
-			continue;
-		}
-		break;
-	  }
-	chThdSleepMilliseconds(20);
-	}
-	return 0;
-}
-
-/*
- * If can2 read data, Then send the data to can1
- */
-static msg_t can2_read(void * p) {
-	CANRxFrame rxmsg;
-	msg_t ret;
-
-	(void)p;
-	chRegSetThreadName("receiver1");
-	while(!chThdShouldTerminate()) {
-	  while(1) {
-		ret = canReceive(&CAND2, CAN_ANY_MAILBOX, &rxmsg, 100);
-		  /* Process message.*/
-		if(ret == RDY_OK) {
-			printMsg(&rxmsg);
-			chThdSleepMilliseconds(500);
-			rxmsg.EID = 0x00043210;
-			canTransmit(&CAND2, CAN_ANY_MAILBOX, (const CANTxFrame *)&rxmsg, MS2ST(100));
-			continue;
-		}
-		break;
-	  }
-	chThdSleepMilliseconds(20);
-	}
-	return 0;
-}
-
-
-/*
- * Initialization can1 and can1
- */
-static void can1_setup(void) {
-	canStart(&CAND1, &cancfg);
-}
-
-
-/* can1 test */
-static void can1_exe(void) {
-	CANTxFrame txmsg;
+static WORKING_AREA(waCan2RxThread, 128);
+static msg_t Can2Sender(void *arg) {
+  (void)arg;
+  chRegSetThreadName("Can2Sender");
 
 	chRegSetThreadName("transmitter");
 	txmsg.IDE = CAN_IDE_EXT;
 	txmsg.RTR = CAN_RTR_DATA;
 	txmsg.EID = 0x01234567;
-	txmsg.DLC = 8;
-	txmsg.data32[0] = 0xaaAAaaAA;
-	txmsg.data32[1] = 0xaaFFa0FF;
 
-	canTransmit(&CAND2, CAN_ANY_MAILBOX, &txmsg, MS2ST(100));
-	chThdCreateStatic(can1_wa, sizeof(can1_wa), NORMALPRIO + 7, can1_read, NULL);
+  uint32_t i = 0;
+  Thread * serial_receiver = NULL;
+  uint32_t sbytes = 0;
+  while (TRUE) {
+    /* Wait msg from serial_receiver */
+    serial_receiver = chMsgWait();
+    /* Read the msg which stand for bytes the receiver expect to receive. */
+    sbytes = chMsgGet(serial_receiver);
+	txmsg.DLC = sbytes;
+    /* Call chMsgRelease to release receiver so it can continue to receive */
+    chMsgRelease(serial_receiver, 0);
+    for (i = 0; i < sbytes; i++) {
+	  txmsg.data8[i] = i;
+    }
+	LOG_PRINT("\tTimes:%d.\n",sbytes);
+	LOG_PRINT("\tCan wirte bytes:%d.\n",sbytes);
+	canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, TIME_INFINITE);
+
+    ToggleLED(6);
+  }
+
+  return RDY_OK;
 }
 
-ROMCONST testcase_t can1_test = {
-  "can1_test",
-  can1_setup,
-  NULL,
-  can1_exe
+
+static void can1_to_can2_setup(void) {
+  canStart(&CAND1, &cancfg);
+  canStart(&CAND2, &cancfg);
+  s_senderp = chThdCreateStatic(waCan2RxThread, sizeof waCan2RxThread,
+                                NORMALPRIO - 20, Can2Sender, NULL);
+}
+
+static void can1_to_can2_td(void) {
+}
+
+/* SERIAL3_T1 serialPolledDelay test */
+static void can1_to_can2_exe(void) {
+  /*
+   * Tell sender thread to send some bytes and then read those bytes and
+   * examine the count of bytes and compare read and written data.
+   */
+  uint32_t j = 0;
+
+  LOG_PRINT("\n\tConnect CAN1 and CAN2 together to pass the test or not"
+            " to fail the test.\n\n");
+  chThdSleepSeconds(1);
+  for (j = 1; j < MAX_WRITE_TIMES; j++) {
+    /* Tell sender to send 'j' bytes to me. */
+    chMsgSend(s_senderp, (msg_t)j);
+    test_assert(j,
+                RDY_OK == canReceive(&CAND2, CAN_ANY_MAILBOX, &s_rxmsg, TIME_INFINITE),
+                "Return bytes doesn't match");
+    test_assert(j,
+                !memcmp(s_rxmsg.data8, txmsg.data8, j),
+                "Data not matched.");
+    chThdSleepMilliseconds(500);
+	LOG_PRINT("\tCan read bytes :%d, And data matched.\n\n",j);
+  }
+}
+
+ROMCONST testcase_t can1_to_can2 = {
+  "can1_to_can2",
+  can1_to_can2_setup,
+  can1_to_can2_td,
+  can1_to_can2_exe
 };
 
 
-/*
- * Initialization can2 and can2
- */
-static void can2_setup(void) {
-	canStart(&CAND2, &cancfg);
+
+static WORKING_AREA(waCan1RxThread, 128);
+static msg_t Can1Sender(void *arg) {
+  (void)arg;
+  chRegSetThreadName("Can1Sender");
+
+	chRegSetThreadName("transmitter");
+	txmsg.IDE = CAN_IDE_EXT;
+	txmsg.RTR = CAN_RTR_DATA;
+	txmsg.EID = 0x01234567;
+
+  uint32_t i = 0;
+  Thread * serial_receiver = NULL;
+  uint32_t sbytes = 0;
+  while (TRUE) {
+    /* Wait msg from serial_receiver */
+    serial_receiver = chMsgWait();
+    /* Read the msg which stand for bytes the receiver expect to receive. */
+    sbytes = chMsgGet(serial_receiver);
+	txmsg.DLC = sbytes;
+    /* Call chMsgRelease to release receiver so it can continue to receive */
+    chMsgRelease(serial_receiver, 0);
+    for (i = 0; i < sbytes; i++) {
+	  txmsg.data8[i] = i;
+    }
+	LOG_PRINT("\tTimes:%d.\n",sbytes);
+	LOG_PRINT("\tCan wirte bytes:%d.\n",sbytes);
+	canTransmit(&CAND2, CAN_ANY_MAILBOX, &txmsg, TIME_INFINITE);
+
+    ToggleLED(6);
+  }
+
+  return RDY_OK;
 }
 
 
-/* can2 test */
-static void can2_exe(void) {
-	chThdCreateStatic(can2_wa, sizeof(can2_wa), NORMALPRIO + 7, can2_read, NULL);
+static void can2_to_can1_setup(void) {
+//  canStart(&CAND1, &cancfg);
+//  canStart(&CAND2, &cancfg);
+  s_senderp = chThdCreateStatic(waCan1RxThread, sizeof waCan1RxThread,
+                                NORMALPRIO - 20, Can1Sender, NULL);
 }
 
-ROMCONST testcase_t can2_test = {
-  "can2_test",
-  can2_setup,
-  NULL,
-  can2_exe
+static void can2_to_can1_td(void) {
+}
+
+/* SERIAL3_T1 serialPolledDelay test */
+static void can2_to_can1_exe(void) {
+  /*
+   * Tell sender thread to send some bytes and then read those bytes and
+   * examine the count of bytes and compare read and written data.
+   */
+  uint32_t j = 0;
+
+  LOG_PRINT("\n\tConnect CAN1 and CAN2 together to pass the test or not"
+            " to fail the test.\n\n");
+  chThdSleepSeconds(1);
+  for (j = 1; j < MAX_WRITE_TIMES; j++) {
+    /* Tell sender to send 'j' bytes to me. */
+    chMsgSend(s_senderp, (msg_t)j);
+    test_assert(j,
+                RDY_OK == canReceive(&CAND1, CAN_ANY_MAILBOX, &s_rxmsg, TIME_INFINITE),
+                "Return bytes doesn't match");
+    test_assert(j,
+                !memcmp(s_rxmsg.data8, txmsg.data8, j),
+                "Data not matched.");
+    chThdSleepMilliseconds(500);
+	LOG_PRINT("\tCan read bytes :%d, And data matched.\n\n",j);
+  }
+}
+
+ROMCONST testcase_t can2_to_can1 = {
+  "can2_to_can1",
+  can2_to_can1_setup,
+  can2_to_can1_td,
+  can2_to_can1_exe
 };
-
-
 
 /**
  * @brief   Test sequence for eeprom.
  */
 ROMCONST testcase_t * ROMCONST pattern_can[] = {
-  &can1_test,
-  &can2_test,
+  &can1_to_can2,
+  &can2_to_can1,
   NULL
 };
 
