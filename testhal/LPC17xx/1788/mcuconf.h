@@ -70,3 +70,24 @@
 #define LPC17xx_RTC_IRQ_PRIORITY            0
 
 #define LPC17xx_I2C_USE_I2C1                TRUE
+
+/*
+ * SSP SPI driver system settings.
+ */
+#define LPC17xx_USE_SSP_SPI0 				TRUE
+#define LPC17xx_SSP_SPI0_IRQ_PRIORITY		5
+
+#define LPC17xx_USE_SSP_SPI1 				TRUE
+#define LPC17xx_SSP_SPI1_IRQ_PRIORITY		5
+
+/*
+ * CAN driver system settings.
+ */
+#define LPC17XX_CAN_USE_CAN1                  TRUE
+#define LPC17XX_CAN_CAN1_IRQ_PRIORITY         11
+
+#define LPC17XX_CAN_USE_CAN2                  TRUE
+#define LPC17XX_CAN_CAN2_IRQ_PRIORITY         11
+
+/* The length of RX buffer (Must be a multiple of 2) */
+#define LPC17XX_CAN_RX_BUF_NUM				  32					

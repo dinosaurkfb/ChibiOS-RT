@@ -60,6 +60,7 @@ include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/LPC17xx/port.mk
 include $(CHIBIOS)/os/kernel/kernel.mk
 include $(CHIBIOS)/os/various/devices_lib/devices_lib.mk
+include ${CHIBIOS}/private/middleware/iCAN/src/iCAN.mk
 
 # Define linker script file here
 LDSCRIPT= $(PORTLD)/LPC1788_isp.ld
@@ -77,9 +78,13 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/update.c \
        $(CHIBIOS)/testhal/test_hal.c \
+       $(iCAN_SRC) \
        test_i2c.c \
        test_gpt.c \
        test_serial.c \
+       test_spi.c \
+       test_can.c \
+       test_ican.c \
        main.c
 
 
@@ -113,6 +118,7 @@ ASMSRC = $(PORTASM)
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) \
          $(DEVICESLIBINC) \
+	     $(iCAN_INC) \
          $(CHIBIOS)/os/various \
          $(CHIBIOS)/testhal
 

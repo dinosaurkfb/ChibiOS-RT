@@ -36,6 +36,9 @@ static const I2CConfig eeprom_i2ccfg = {
 extern ROMCONST testcase_t * ROMCONST pattern_i2c[];
 extern ROMCONST testcase_t * ROMCONST pattern_gpt[];
 extern ROMCONST testcase_t * ROMCONST pattern_serial[];
+extern ROMCONST testcase_t * ROMCONST pattern_spi[];
+extern ROMCONST testcase_t * ROMCONST pattern_can[];
+extern ROMCONST testcase_t * ROMCONST pattern_ican[];
 
 /*
  * Array of all the test patterns.
@@ -44,6 +47,9 @@ static ROMCONST testcase_t * ROMCONST *patterns[] = {
   pattern_i2c,
   pattern_gpt,
   pattern_serial,
+  pattern_spi,
+  pattern_can,
+  pattern_ican,
   NULL
 };
 

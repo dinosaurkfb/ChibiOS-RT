@@ -307,6 +307,14 @@
 #define SPI_USE_MUTUAL_EXCLUSION    TRUE
 #endif
 
+/**
+ * @brief   Enables synchronous APIs.
+ * @note    Disabling this option saves both code and data space.
+ */
+#if !defined(HAL_USE_SSP_SPI) || defined(__DOXYGEN__)
+#define HAL_USE_SSP_SPI 				TRUE
+#endif
+
 #endif /* _HALCONF_H_ */
 
 /** @} */

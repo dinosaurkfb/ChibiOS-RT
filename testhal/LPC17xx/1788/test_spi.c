@@ -35,16 +35,16 @@ static uint8_t w_buf[SPI_TEST_SIZE];
 /* SPI interface config */
 static SSPSPIConfig spicfg = {
   NULL,
-  LPC_GPIO0,
-  16,
-  7,
-  1000000  //speed
+  LPC_GPIO5,
+  4,
+  CR0_DSS8BIT | CR0_FRFSPI,
+  1000000  //Î»ËÙÂÊ
 };
 
 
 /* read flash id test */
 static void read_flash_id_setup(void) {
-	SPI_FLASH_Init(&SPID1, &spicfg);
+	SPI_FLASH_Init(&SPID2, &spicfg);
 	LOG_PRINT("\tspi start.\n");
 }
 
