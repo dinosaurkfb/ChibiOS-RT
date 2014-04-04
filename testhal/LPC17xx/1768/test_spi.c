@@ -55,7 +55,7 @@ static void read_flash_id_exe(void) {
     ChipID &= ~0xff000000;						                        
 	LOG_PRINT("\tSSTF016B ID =0x%x.\n", ChipID);
     test_assert(1, 
-			ChipID != 0x4125BF, 
+			ChipID == 0x4125BF, 
 			"\tErr: Read SSTF016B ID");
 }
 
